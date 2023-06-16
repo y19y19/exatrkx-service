@@ -38,7 +38,7 @@ sbatch --account=<elvis> deploy_triton.sh
 ## Inference Binary
 Run the inference binary in parallel with:
 ```bash
-./run_exatrkx.sh server_address:8001 [optional: -i data_folder -n njobs -j cpu_threads_per_job -q/--quiet]
+./run_exatrkx.sh server_ip_address:8001 [optional: -i data_folder -n njobs -j cpu_threads_per_job -q/--quiet]
 ```
 
 ## Grafana Dashboard + Nginx Load Balancer
@@ -49,7 +49,7 @@ To run the Grafana Dashboard and connect the triton servers to a load balancer r
 
 To print out values for key metrics run (see [file](triton_service/triton_metrics.py)):
 ```bash
-python triton_service/triton_metrics.py server_address
+python triton_service/triton_metrics.py server_ip_address:8002
 ```
 
 # Notes
