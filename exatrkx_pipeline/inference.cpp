@@ -83,9 +83,10 @@ int main(int argc, char* argv[])
     bool help = false;
     bool verbose = false;
     int nthreads = 1;
+    int ignore_first_n_events = 0;
     std::string url("localhost:8001");
     
-    while ((opt = getopt(argc, argv, "vht:s:d:u:")) != -1) {
+    while ((opt = getopt(argc, argv, "vht:s:d:u:i:")) != -1) {
         switch (opt) {
             case 'd':
                 input_file_path = optarg;
@@ -102,14 +103,18 @@ int main(int argc, char* argv[])
             case 'u':
                 url = optarg;
                 break;
+            case 'i':
+                ignore_first_n_events = atoi(optarg);
+                break;
             case 'h':
                 help = true;
             default:
                 fprintf(stderr, "Usage: %s [-hv] [-d input_file_path] [-s server_type]\n", argv[0]);
                 if (help) {
-                    std::cerr << " -s: server type. 0: no server, 1: torch, 2: python, 3: one, 4: combined" << std::endl;
+                    std::cerr << " -s: server type. 0: no server, 1: torch, 2: python, 3: one, 4: combined. default = 0" << std::endl;
                     std::cerr << " -d: input data/directory" << std::endl;
-                    std::cerr << " -t: number of threads" << std::endl;
+                    std::cerr << " -t: number of threads, default = 1" << std::endl;
+                    std::cerr << " -i: ignore first n events, default = 0" << std::endl;
                     std::cerr << " -u: url of server" << std::endl;
                     std::cerr << " -v: verbose" << std::endl;
                 }
@@ -227,8 +232,8 @@ int main(int argc, char* argv[])
     printf("Summary of the first event\n");
     tot_time.summaryOneEvent(0);
     printf("-----------------------------------------------------\n");
-    printf("Summary of without first 1 event\n");
-    tot_time.summary(1);
+    printf("Summary of without first  %d event\n", ignore_first_n_events);
+    tot_time.summary(ignore_first_n_events);
     printf("Summary of the last event\n");
     tot_time.summaryOneEvent(tot_time.numEvts()-1);
     std::stringstream ss;
