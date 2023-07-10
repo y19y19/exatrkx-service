@@ -9,18 +9,35 @@ This folder contains two model repository folders for the nvidia triton inferenc
 title: ExaTrkX ensemble model
 ---
 stateDiagram-v2
-    [*] --> embed: exatrkx_input_FEATURES.csv
-    embed --> frnn: embed_output_OUTPUT__0.csv
-    [*] --> filter
-    frnn --> filter: frnn_output_OUTPUT0.csv
-    filter --> applyfilter: filter_output_OUTPUT__0.csv
-    frnn --> applyfilter
-    [*] --> gnn
-    applyfilter --> gnn
-    applyfilter --> wcc: applyfilter_output_EDGE_LIST_AFTER_FILTER.csv
-    gnn --> wcc: gnn_output_OUTPUT__0.csv
-    wcc --> [*]
+    direction LR
+    
+    classDef pytorch_style fill:#f00,color:white,font-weight:bold,stroke-width:2px,stroke:black
+    classDef python_backend_style fill:#46eb34,color:white,font-weight:bold,stroke-width:2px,stroke:yellow
+    
+
+    [*] --> embed:::pytorch_style : SP
+    embed --> frnn:::python_backend_style : new SP
+    [*] --> filter : SP
+    frnn --> filter:::pytorch_style : Edges
+    filter --> applyfilter:::python_backend_style : Edge Scores
+    frnn --> applyfilter : Edges
+    applyfilter --> gnn : Edges
+    [*] --> gnn:::pytorch_style : SP
+    applyfilter --> wcc:::python_backend_style : Edges
+    gnn --> wcc : Edge Scores
+    wcc --> [*] : Tracks
+
+    state backend_legend {
+        direction LR
+            pytorch
+            python_backend
+        }
+    
+
+    class pytorch pytorch_style
+    class python_backend python_backend_style
 ```
+
 
 ## Testing models
 Use the `test_triton_model.py` to test models on the triton server:
