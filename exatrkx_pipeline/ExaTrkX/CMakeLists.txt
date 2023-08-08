@@ -34,12 +34,6 @@ target_include_directories(
     $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
 )
 
-target_include_directories(
-  ActsPluginExaTrkXTriton
-  PUBLIC
-     /workspace/install/include
-)
-
 target_link_libraries(
   ActsPluginExaTrkXTriton
   PUBLIC
@@ -50,6 +44,6 @@ target_link_libraries(
   ActsPluginExaTrkXTriton
   PRIVATE
     frnn  
-    /workspace/install/lib/libgrpcclient.so
-    /workspace/build/third-party/protobuf/lib/libprotobuf.a
+    libgrpcclient.so
+    libprotobuf.a
 )

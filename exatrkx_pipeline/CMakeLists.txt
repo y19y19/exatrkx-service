@@ -52,16 +52,13 @@ endif(CMAKE_BUILD_TYPE MATCHES Debug)
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
-
-set(CMAKE_CUDA_ARCHITECTURES 70)
-set(CMAKE_CUDA_STANDARD 14)
-set(CMAKE_C_FLAGS "-Wno-error=format-truncation") 
+set(CMAKE_C_FLAGS "-Wno-error=format-truncation")
 
 find_package(Torch REQUIRED)
 find_package(Boost REQUIRED)
 find_package(TBB REQUIRED)
 
-find_package(TritonCore CONFIG REQUIRED)
+# find_package(TritonCore CONFIG REQUIRED)
 find_package(TritonCommon CONFIG REQUIRED)
 find_package(TritonClient CONFIG REQUIRED COMPONENTS TritonClient::triton-client)
 
@@ -72,10 +69,4 @@ target_link_libraries(inference PUBLIC ActsPluginExaTrkXTriton tbb)
 set_target_properties(inference
 PROPERTIES  CXX_STANDARD                        17
             CXX_STANDARD_REQUIRED               ON
-)
-target_include_directories(
-  inference
-  PUBLIC
-    /workspace/install/include
-    /usr/local/cuda/include
 )

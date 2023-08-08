@@ -1,9 +1,5 @@
 #pragma once
 
-#include <torch/torch.h>
-#include <torch/script.h>
-using namespace torch::indexing;
-
 #include "grpc_client.h"
 #include "grpc_service.pb.h"
 
@@ -28,7 +24,21 @@ class ExaTrkXTriton {
     ExaTrkXTriton(const std::string& modelName,
     const std::string& url,
     const std::string& modelVersion="",
-    uint32_t client_timeout=0, bool verbose=false);
+    uint32_t client_timeout=0, bool verbose=false){
+      options_ = std::make_unique<tc::InferOptions>(modelName);
+      options_->model_version_ = modelVersion;
+      options_->client_timeout_ = client_timeout;
+
+      inputs_.clear();
+
+      // Create a InferenceServerGrpcClient instance to communicate with the
+      // server using gRPC protocol.
+      std::unique_ptr<triton::client::InferenceServerGrpcClient> tClient;
+      FAIL_IF_ERR(
+          tc::InferenceServerGrpcClient::Create(&tClient, url, verbose),
+          "unable to create grpc client");
+      m_Client_ = std::move(tClient);
+    }
 
 
     ExaTrkXTriton() = delete;
@@ -63,19 +73,9 @@ class ExaTrkXTriton {
       return true;
     }
 
-    template <typename T>
-    bool AddInputFromTorch(const std::string& inputName, const at::Tensor& inputTensor){
-      std::vector<int64_t> inputShape{inputTensor.sizes().vec()};  
-      std::vector<T> inputValues;
-      std::copy(
-        inputTensor.data_ptr<T>(),
-        inputTensor.data_ptr<T>() + inputTensor.numel(),
-        std::back_inserter(inputValues));
-      
-      return AddInput<T>(inputName, inputShape, inputValues);
+    void ClearInput() {
+      inputs_.clear();
     }
-
-    void ClearInput();
 
     template <typename T>
     bool GetOutput(const std::string& outputName,

@@ -27,14 +27,18 @@ create_folders(){
     mkdir -p "$@"
 }
 build_bin(){
-    echo "<> Building inference binary"
-    mkdir -p exatrkx_pipeline/build 
-    podman-hpc run -it --rm --gpu --volume="$(pwd)/exatrkx_pipeline/:/workdir/" $1 /bin/bash -c "cd /workdir/build; ../make.sh && make -j32"
+    echo "<> Building $2 binary" 
+    podman-hpc run -it --rm --gpu --volume="$(pwd)/$2/:/workdir/" $1 /bin/bash -c "cd /workdir; ./make.sh -j 32"
 }
+# build_legacy_bin(){
+#     echo "<> Building $2 binary" 
+#     mkdir -p $2/build 
+#     podman-hpc run -it --rm --gpu --volume="$(pwd)/$2/:/workdir/" $1 /bin/bash -c "cd /workdir/build; ../make.sh -j 32"
+# }
 
 # Load config
 source setup_env.cfg
-IMAGE_LIST="$TRITON_IMAGE $EXATRKX_IMAGE $PROMETHEUS_IMAGE $GRAFANA_IMAGE $NGINX_IMAGE"
+IMAGE_LIST="$TRITON_IMAGE $EXATRKX_IMAGE $EXATRKX_CPU_IMAGE $EXATRKX_GPU_IMAGE $PROMETHEUS_IMAGE $GRAFANA_IMAGE $NGINX_IMAGE"
 
 
 #Main
@@ -46,7 +50,9 @@ main() {
 
     create_folders $PROMETHEUS_DB_DIR $GRAFANA_DIR $TRITON_JOBS_DIR
 
-    build_bin $EXATRKX_IMAGE
+    build_bin $EXATRKX_CPU_IMAGE exatrkx_cpu
+    build_bin $EXATRKX_GPU_IMAGE exatrkx_gpu
+    build_bin $EXATRKX_GPU_IMAGE exatrkx_triton
 
     echo "<> Setup complete"
 }
