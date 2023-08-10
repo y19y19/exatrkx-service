@@ -2,6 +2,42 @@
 
 This repository houses the "as-a-service" implementation of the [ExaTrkX](https://arxiv.org/abs/2103.06995) pipeline. We use Nvidia's [Triton inference server](https://github.com/triton-inference-server) to host the ExaTrkX pipeline and schedule requests from clients.
 
+**Figure 1**: ExaTrkX Triton server pipeline
+
+```mermaid
+---
+title: ExaTrkX ensemble model
+---
+stateDiagram-v2
+    direction LR
+    
+    classDef pytorch_style fill:#f00,color:white,font-weight:bold,stroke-width:2px,stroke:black
+    classDef python_backend_style fill:#46eb34,color:white,font-weight:bold,stroke-width:2px,stroke:yellow
+    
+
+    [*] --> embed:::pytorch_style : SP
+    embed --> frnn:::python_backend_style : new SP
+    [*] --> filter : SP
+    frnn --> filter:::pytorch_style : Edges
+    filter --> applyfilter:::python_backend_style : Edge Scores
+    frnn --> applyfilter : Edges
+    applyfilter --> gnn : Edges
+    [*] --> gnn:::pytorch_style : SP
+    applyfilter --> wcc:::python_backend_style : Edges
+    gnn --> wcc : Edge Scores
+    wcc --> [*] : Tracks
+
+    state backend_legend {
+        direction LR
+            pytorch
+            python_backend
+        }
+    
+
+    class pytorch pytorch_style
+    class python_backend python_backend_style
+```
+
 **Table 1**: ExaTrkX Triton server pipeline
 **Stage**|**Backend**
 :-----|:-----
@@ -47,9 +83,9 @@ To run the Grafana Dashboard and connect the triton servers to a load balancer r
 ./monitor_triton.sh slurm_jobid
 ```
 
-To print out values for key metrics run (see [file](triton_service/triton_metrics.py)):
+To save key metrics run (see [file](triton_service/triton_metrics.py)):
 ```bash
-python triton_service/triton_metrics.py server_ip_address:8002
+python triton_service/triton_metrics.py --ip server_ip_address:8002
 ```
 
 # Notes
