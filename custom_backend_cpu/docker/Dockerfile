@@ -41,37 +41,38 @@ ENV UNPACK_TO_SRC tar -xz --strip-components=1 --directory src
 ENV PREFIX /usr/local
 
 # Require cmake 3.21.2 or higher. The previous version is 3.21.2
-RUN cd /tmp && mkdir src \
+RUN cd /tmp && mkdir -p src \
   && ${GET} https://github.com/Kitware/CMake/releases/download/v3.26.4/cmake-3.26.4-Linux-x86_64.tar.gz \
     | ${UNPACK_TO_SRC} \
   && rsync -ruv src/ ${PREFIX} \
-  && cd .. \
-  && rm -rf src
+  && cd /tmp && rm -rf /tmp/src \ 
 
 # Get pytorch source and build
-RUN cd /tmp && \
-	git clone --recursive https://github.com/pytorch/pytorch.git && cd pytorch && \
-	git checkout -b r1.11 origin/release/1.11 && \
-	git submodule sync && git submodule update --init --recursive --jobs 0 && \
-    export _GLIBCXX_USE_CXX11_ABI=1 && pip3 install -r requirements.txt && \
-	MAX_JOBS=8 USE_CUDA=0 USE_MKL=ON CMAKE_PREFIX_PATH=${PREFIX} python setup.py install && \
-	rm -rf /tmp/pytorch
+RUN pip install torch==1.11.0+cpu torchvision==0.12.0+cpu torchaudio==0.11.0 --extra-index-url https://download.pytorch.org/whl/cpu
+# RUN cd /tmp && \
+# 	git clone --recursive https://github.com/pytorch/pytorch.git && cd pytorch && \
+# 	git checkout -b r1.11 origin/release/1.11 && \
+# 	git submodule sync && git submodule update --init --recursive --jobs 0 && \
+#     export _GLIBCXX_USE_CXX11_ABI=1 && pip3 install -r requirements.txt && \
+# 	MAX_JOBS=20 USE_CUDA=0 USE_MKL=ON CMAKE_PREFIX_PATH=${PREFIX} python setup.py install && \
+# 	cd /tmp && rm -rf /tmp/pytorch
 
 # Install Torch scatter
-RUN cd /tmp && mkdir src \
-  && ${GET} https://github.com/rusty1s/pytorch_scatter/archive/refs/tags/2.0.9.tar.gz \
-    | ${UNPACK_TO_SRC} \
-  && cmake -B build -S src -GNinja \
-    -DCMAKE_BUILD_TYPE=Release \
-    -DCMAKE_CXX_STANDARD=17 \
-    -DCMAKE_INSTALL_PREFIX=${PREFIX} \
-    -DWITH_CUDA=OFF \
-    -DCMAKE_PREFIX_PATH="$(python -c 'import torch;print(torch.utils.cmake_prefix_path)')" \
-  && cmake --build build -- install \
-  && rm -rf build src
+RUN pip install torch-scatter -f https://data.pyg.org/whl/torch-1.11.0+cpu.html
+# RUN cd /tmp && mkdir -p src \
+#   && ${GET} https://github.com/rusty1s/pytorch_scatter/archive/refs/tags/2.0.9.tar.gz \
+#     | ${UNPACK_TO_SRC} \
+#   && cmake -B build -S src -GNinja \
+#     -DCMAKE_BUILD_TYPE=Release \
+#     -DCMAKE_CXX_STANDARD=17 \
+#     -DCMAKE_INSTALL_PREFIX=${PREFIX} \
+#     -DWITH_CUDA=OFF \
+#     -DCMAKE_PREFIX_PATH="$(python -c 'import torch;print(torch.utils.cmake_prefix_path)')" \
+#   && cmake --build build -- install \
+#   && rm -rf build src
 
-# Faiss for fast similarity search
-RUN cd /tmp && mkdir src \
+# # Faiss for fast similarity search
+RUN cd /tmp && mkdir -p src \
   && ${GET} https://github.com/facebookresearch/faiss/archive/refs/tags/v1.7.4.tar.gz \
     | ${UNPACK_TO_SRC} \
     && cd src && mkdir build && cd build \
@@ -84,10 +85,12 @@ RUN cd /tmp && mkdir src \
     && cd ../.. && make install && cd .. \
     && rm -rf src
 
-# Install rapidjson for building triton custom backends 
-RUN cd /tmp && mkdir src && cd src \
+# # Install rapidjson for building triton custom backends 
+RUN cd /tmp && mkdir -p src && cd src \
   && git clone --recursive https://github.com/Tencent/rapidjson.git \ 
   && cd rapidjson && mkdir build && cd build \
-  && cmake ../ && make install -j8 
+  && cmake ../ && make install -j8 \
+  && cd /tmp && rm -rf /tmp/src 
 
+RUN cd /workspace 
 # # RUN apt-get install -y libmkl-full-dev && pip3 install mkl-devel
