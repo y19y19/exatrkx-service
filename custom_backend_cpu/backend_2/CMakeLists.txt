@@ -80,12 +80,16 @@ FetchContent_Declare(
 )
 FetchContent_MakeAvailable(repo-common repo-core repo-backend)
 
-find_package(Torch REQUIRED)
+find_package(Torch REQUIRED HINTS "/opt/libtorch/share/cmake/Torch")
 find_package(Boost REQUIRED)
 find_package(TBB REQUIRED)
 find_package(BLAS REQUIRED)
 find_package(OpenMP REQUIRED)
 
+find_library(FAISS_LIBRARY NAMES faiss HINTS /usr/local/lib)
+# check ${FAISS_LIBRARIES}
+message(STATUS "FAISS_LIBRARY: ${FAISS_LIBRARY}")
+message(STATUS "TORCH_LIBRARY: ${TORCH_LIBRARY}")
 #
 # The backend must be built into a shared library. Use an ldscript to
 # hide all symbols except for the TRITONBACKEND API.
@@ -97,7 +101,7 @@ add_library(
   src/exatrkxcpu.cc
   src/ExaTrkXTrackFinding.cpp
   src/ExaTrkXUtils.cpp
-  src/inference-cpu.cpp
+  # src/inference-cpu.cpp
 )
 
 add_library(
@@ -108,13 +112,14 @@ target_include_directories(
   PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/src
     ${TORCH_INCLUDE_DIRS}
+    ${FAISS_INCLUDE_DIRS}
 )
 
-target_compile_features(triton-exatrkxcpu-backend PRIVATE cxx_std_17)
+target_compile_features(triton-exatrkxcpu-backend PRIVATE cxx_std_11)
 target_compile_options(
   triton-exatrkxcpu-backend PRIVATE
   $<$<OR:$<CXX_COMPILER_ID:Clang>,$<CXX_COMPILER_ID:AppleClang>,$<CXX_COMPILER_ID:GNU>>:
-    -Wall -Wextra -Wno-unused-parameter -Wno-type-limits >
+    -Wall -Wextra -Wno-unused-parameter -Wno-type-limits>
   $<$<CXX_COMPILER_ID:MSVC>:/Wall /D_WIN32_WINNT=0x0A00 /EHsc>
 )
 
@@ -126,6 +131,9 @@ target_link_libraries(
     triton-core-backendapi  # from repo-core
     triton-core-serverstub  # from repo-core
     triton-backend-utils    # from repo-backend
+    ${FAISS_LIBRARY}
+    ${TORCH_LIBRARIES}
+    TBB::tbb
 )
 
 if(WIN32)

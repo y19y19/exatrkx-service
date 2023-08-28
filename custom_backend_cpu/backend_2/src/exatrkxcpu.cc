@@ -32,6 +32,9 @@
 #include "triton/core/tritonbackend.h"
 
 #include "ExaTrkXTrackFinding.hpp"
+#include "ExaTrkXTiming.hpp"
+#include "helper.cpp"
+
 
 namespace triton { namespace backend { namespace recommended {
 
@@ -178,6 +181,12 @@ class ModelState : public BackendModel {
   // should only call it in TRITONBACKEND_ModelInstanceExecute.
   TRITONSERVER_Error* TensorShape(std::vector<int64_t>& shape);
 
+  // Set the shape of the input and output tensor. This method is
+  // called by the backend in TRITONBACKEND_ModelInstanceExecute to
+  // set the shape of the output tensor to match the shape of the
+  // input tensor.
+  TRITONSERVER_Error* SetTensorShape(const std::vector<int64_t>& input_shape);
+
   // Validate that this model is supported by this backend.
   TRITONSERVER_Error* ValidateModelConfig();
 
@@ -230,6 +239,7 @@ ModelState::TensorShape(std::vector<int64_t>& shape)
   // batch dimension value for each response. The shape needs to be
   // initialized lazily because the SupportsFirstDimBatching function
   // cannot be used until the model is completely loaded.
+  
   if (!shape_initialized_) {
     bool supports_first_dim_batching;
     RETURN_IF_ERROR(SupportsFirstDimBatching(&supports_first_dim_batching));
@@ -245,6 +255,19 @@ ModelState::TensorShape(std::vector<int64_t>& shape)
 
   return nullptr;  // success
 }
+
+TRITONSERVER_Error*
+ModelState::SetTensorShape(const std::vector<int64_t>& input_shape)
+{
+  // Copy the provided shape to the internal variable
+  nb_shape_ = input_shape;
+  
+  // Reset shape initialization flag
+  shape_initialized_ = false;
+
+  return nullptr;  // success
+}
+
 
 TRITONSERVER_Error*
 ModelState::ValidateModelConfig()
@@ -315,6 +338,19 @@ ModelState::ValidateModelConfig()
   RETURN_IF_ERROR(backend::ParseShape(input, "dims", &input_shape));
   RETURN_IF_ERROR(backend::ParseShape(output, "dims", &output_shape));
 
+  // print length and shape of input and output
+  std::cout << "input length: " << input_shape.size() << std::endl;
+  std::cout << "output length: " << output_shape.size() << std::endl;
+  for (int i = 0; i < (int)input_shape.size(); i++) {
+    std::cout << "input shape: " << input_shape[i] << std::endl;
+  }
+  input_shape[0] = 4;
+  output_shape[0] = 4;
+
+  LOG_MESSAGE(
+      TRITONSERVER_LOG_INFO,
+      (std::string("input shape: ") + backend::ShapeToString(input_shape))
+          .c_str());
   RETURN_ERROR_IF_FALSE(
       input_shape == output_shape, TRITONSERVER_ERROR_INVALID_ARG,
       std::string("expected input and output shape to match, got ") +
@@ -324,6 +360,65 @@ ModelState::ValidateModelConfig()
   nb_shape_ = input_shape;
 
   return nullptr;  // success
+}
+
+
+TRITONSERVER_Error* GetTensorShapeFromRequest(
+    TRITONBACKEND_Request* request,
+    const std::string& tensor_name,
+    std::vector<int64_t>& shape)
+{
+    TRITONBACKEND_Input* input_tensor;
+    
+    // Fetch the tensor by name from the request
+    RETURN_IF_ERROR(TRITONBACKEND_RequestInput(request, tensor_name.c_str(), &input_tensor));
+    
+    // Get the properties of the tensor, specifically its shape
+    const int64_t* shape_ptr;
+    uint32_t dims;
+    RETURN_IF_ERROR(TRITONBACKEND_InputProperties(input_tensor, NULL, NULL, &shape_ptr, &dims, NULL, NULL));
+
+    // Assign the shape to the output variable
+    shape.assign(shape_ptr, shape_ptr + dims);
+    
+    return nullptr;  // success
+}
+
+TRITONSERVER_Error* ExtractInputTensor(
+    TRITONBACKEND_Request* request, 
+    const char* tensor_name,
+    std::vector<float>& tensor_values)
+{
+    // Get input tensor
+    TRITONBACKEND_Input* input_tensor;
+    TRITONSERVER_Error* err = TRITONBACKEND_RequestInput(request, tensor_name, &input_tensor);
+    if (err != nullptr) {
+        return err;
+    }
+
+    // Ensure that tensor type is FP32
+    TRITONSERVER_DataType dtype;
+    err = TRITONBACKEND_InputProperties(input_tensor, nullptr, &dtype, nullptr, nullptr, nullptr, nullptr);
+    if (err != nullptr || dtype != TRITONSERVER_TYPE_FP32) {
+        return TRITONSERVER_ErrorNew(
+            TRITONSERVER_ERROR_INVALID_ARG, 
+            "Expected input tensor of type FP32.");
+    }
+
+    // Get the number of input buffers (should be 1 for most models)
+    const void* data;
+    uint64_t data_byte_size;
+    TRITONSERVER_MemoryType mem_type;   // Additional memory type argument
+    int64_t mem_type_id;                // Additional memory type ID argument
+    err = TRITONBACKEND_InputBuffer(input_tensor, 0, &data, &data_byte_size, &mem_type, &mem_type_id);
+    if (err != nullptr) {
+        return err;
+    }
+
+    // Copy data to the provided vector
+    tensor_values.assign(static_cast<const float*>(data), static_cast<const float*>(data) + data_byte_size / sizeof(float));
+    
+    return nullptr;  // success
 }
 
 extern "C" {
@@ -619,6 +714,47 @@ TRITONBACKEND_ModelInstanceExecute(
        tstr)
           .c_str());
 
+  const auto& request = requests[0];
+  std::vector<float> input_tensor_values;
+  TRITONSERVER_Error* error = ExtractInputTensor(request, model_state->InputTensorName().c_str(), input_tensor_values);
+  if (error != nullptr) {
+      std::cerr << "Error extracting tensor: " << TRITONSERVER_ErrorCodeString(error) << std::endl;
+      TRITONSERVER_ErrorDelete(error);
+  }
+
+  // print the input tensor values
+  // for (int i = 0; i < (int)input_tensor_values.size(); i++) {
+  //   std::cout << "input tensor value: " << input_tensor_values[i] << std::endl;
+  // }
+
+  bool verbose = false;
+  std::string model_path("/workspace/exatrkx_pipeline/datanmodels/");
+  std::unique_ptr<ExaTrkXTrackFinding> infer;
+  ExaTrkXTrackFinding::Config config{model_path, verbose};
+  ExaTrkXTimeList tot_time;
+  infer = std::make_unique<ExaTrkXTrackFinding>(config);
+  std::cout << "Running Inference with local CPUs" << std::endl;
+  int tot_tracks = 0;
+  int64_t spacepointFeatures = 3;
+  int numSpacepoints = input_tensor_values.size() / spacepointFeatures;
+
+  std::vector<int> spacepoint_ids;
+  for (int i = 0; i < numSpacepoints; ++i) {
+        spacepoint_ids.push_back(i);
+    }
+
+  std::vector<std::vector<int> > track_candidates;
+  ExaTrkXTime time;
+  infer->getTracks(input_tensor_values, spacepoint_ids, track_candidates, time);
+  tot_time.add(time);
+  tot_tracks += track_candidates.size();
+  dumpTrackCandidate(track_candidates);
+
+  std::vector<int> output_data;
+  for (size_t i = 0; i < track_candidates.size(); ++i) {
+      output_data.push_back(static_cast<int>(i));
+  }
+
   const char* output_buffer = input_buffer;
   TRITONSERVER_MemoryType output_buffer_memory_type = input_buffer_memory_type;
   int64_t output_buffer_memory_type_id = input_buffer_memory_type_id;
@@ -632,6 +768,21 @@ TRITONBACKEND_ModelInstanceExecute(
       model_state->SupportsFirstDimBatching(&supports_first_dim_batching));
 
   std::vector<int64_t> tensor_shape;
+  LOG_MESSAGE(
+      TRITONSERVER_LOG_INFO,
+      (std::string("model ") + model_state->Name() + ": supports batching " +
+       (supports_first_dim_batching ? "with" : "without") + " first dimension")
+          .c_str());
+
+  // TODO: hardcode the requests[0]
+  GetTensorShapeFromRequest(requests[0], model_state->InputTensorName(), tensor_shape);
+  // iterate over the shape and print it 
+  // for (int i = 0; i < (int)tensor_shape.size(); i++) {
+  //   std::cout << "GetTensorShapeFromRequest: input shape: " << tensor_shape[i] << std::endl;
+  // }
+
+  model_state->SetTensorShape(tensor_shape);
+
   RESPOND_ALL_AND_SET_NULL_IF_ERROR(
       responses, request_count, model_state->TensorShape(tensor_shape));
 

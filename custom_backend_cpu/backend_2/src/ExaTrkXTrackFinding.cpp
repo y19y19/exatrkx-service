@@ -157,15 +157,15 @@ void ExaTrkXTrackFinding::getTracks(
     std::copy(
         edgesAfterF.data_ptr<int64_t>(),
         edgesAfterF.data_ptr<int64_t>()+numEdgesAfterF,
-        std::back_insert_iterator(rowIndices));
+        std::back_inserter(rowIndices));
     std::copy(
         edgesAfterF.data_ptr<int64_t>()+numEdgesAfterF,
         edgesAfterF.data_ptr<int64_t>() + numEdgesAfterF+numEdgesAfterF,
-        std::back_insert_iterator(colIndices));
+        std::back_inserter(colIndices));
     std::copy(
         gOutput.data_ptr<float>(),
         gOutput.data_ptr<float>() + numEdgesAfterF,
-        std::back_insert_iterator(edgeWeights));
+        std::back_inserter(edgeWeights));
 
     weaklyConnectedComponents<int32_t,int32_t,float>(
         numSpacepoints,
