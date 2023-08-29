@@ -1,20 +1,50 @@
 # Build docker customized backend based on tritonserver:22.02-py3
 
+## How to Run
 ```bash
-podman-hpc build -t hrzhao/custom_backend:v0.3 -< docker/Dockerfile
+podman-hpc build -t hrzhao/custom_backend:v0.5 -< docker/Dockerfile
 ```
 
-
+### Start the Triton server 
 ```bash 
-cd /global/cfs/projectdirs/atlas/hrzhao/ExaTrk/exatrkx-service 
+cd <path-to-exatrkx-service>
+#cd /global/cfs/projectdirs/atlas/hrzhao/ExaTrk/exatrkx-service 
 
 podman-hpc run -it --rm --gpu --shm-size=2g -p8000:8000 -p8001:8001 -p8002:8002 -v ${PWD}:/workspace/ hrzhao/custom_backend:v0.5
 
-cd /workspace/custom_backend_cpu/backend_1/build
+mkdir -p /workspace/custom_backend_cpu/backend_2/build
+cd /workspace/custom_backend_cpu/backend_2/build
 rm -rf * && cmake -DCMAKE_INSTALL_PREFIX:PATH=`pwd`/install ../  -DCMAKE_PREFIX_PATH="$(python -c 'import torch;print(torch.utils.cmake_prefix_path)')" && make install -j20 
 
+cp -r install/backends/exatrkxcpu/ /opt/tritonserver/backends && tritonserver --model-repository=/workspace/custom_backend_cpu/model_repo/ --log-verbose=4
+
+```
+### Start the client 
+```bash
+cd <path-to-exatrkx-service>
+#cd /global/cfs/projectdirs/atlas/hrzhao/ExaTrk/exatrkx-service 
+
+podman-hpc run -it --rm --net=host -v ${PWD}:/workspace/ nvcr.io/nvidia/tritonserver:23.07-py3-sdk bash
+pip install pandas
+
+# send the request to the server from client 
+cd /workspace/custom_backend_cpu/client
+python extrkcpu_client.py
 ```
 
+### Results 
+![image_results_server_client](docs/imgs/image_results_server_client.png)
+
+## TODO:
+- [ ] Fix the shape issue of 2nd inference 
+- [ ] Move initialization variables to constructor
+- [ ] Some configs are hard coded, need to be fixed
+- [ ] Add batch support, may need ragged batching [ragged_batching](https://docs.nvidia.com/deeplearning/triton-inference-server/user-guide/docs/user_guide/ragged_batching.html) 
+- [ ] How to make use of collector?  
+- [ ] Backend 1: compile `libExaTrkx.so` as a static library and link it to the backend 
+
+
+# DeV Notes...
 ```bash
 ./bin/inference-cpu -m ../../../exatrkx_pipeline/datanmodels -d ../../../exatrkx_pipeline/datanmodels/in_e1000.csv
 
@@ -52,8 +82,19 @@ cd custom_backend_cpu/examples/
 python clients/recommended_client
 ```
 
+## work on mod recommended backend 
+
+``` bash
+rm -rf * && cmake -DCMAKE_INSTALL_PREFIX:PATH=`pwd`/install ../ && make install -j20 && cp -r install/backends/recommended/ /opt/tritonserver/backends/ && \
+tritonserver --model-repository=/workspace/custom_backend_cpu/examples/model_repos/recommended_models_mod --log-verbose=4
+```
+
+Note: collector is used in the recommended backend, which means input_buffer is a 1-d array that batched input is stored in a continuous way. 
+It is said to be parallelized.
+
+
 ## Example backends 
-[PyTorch Backend](https://github.com/triton-inference-server/pytorch_backend) 
+[PyTorch Backend](https://github.com/triton-inference-server/pytorch_backend)   
 [Python Backend](https://github.com/triton-inference-server/python_backend)
 
 
@@ -104,10 +145,7 @@ Solved by: `int num = static_cast<int>(embedding.size());`
         /lib64/ld-linux-x86-64.so.2 (0x00007f48c8bad000)                                                                                                                                                                                   
         libdl.so.2 => /lib/x86_64-linux-gnu/libdl.so.2 (0x00007f48c86f5000)
         libm.so.6 => /lib/x86_64-linux-gnu/libm.so.6 (0x00007f48c85a6000)
-        ```
-
-
-
+```
 ```
 root@ffd5ef261239:/workspace/custom_backend_cpu/backend/build# ldd ../../../exatrkx_cpu/build/lib/libExaTrkXCPU.so 
         linux-vdso.so.1 (0x00007ffc02ac5000)

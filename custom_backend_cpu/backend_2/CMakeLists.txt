@@ -80,7 +80,7 @@ FetchContent_Declare(
 )
 FetchContent_MakeAvailable(repo-common repo-core repo-backend)
 
-find_package(Torch REQUIRED HINTS "/opt/libtorch/share/cmake/Torch")
+find_package(Torch REQUIRED)
 find_package(Boost REQUIRED)
 find_package(TBB REQUIRED)
 find_package(BLAS REQUIRED)
