@@ -36,8 +36,9 @@ python extrkcpu_client.py
 ![image_results_server_client](docs/imgs/image_results_server_client.png)
 
 ## TODO:
-- [ ] Fix the shape issue of 2nd inference 
-- [ ] Move initialization variables to constructor
+- [x] Fix the shape issue of 2nd inference 
+- [x] Move initialization variables to constructor
+  - [ ] public or private? 
 - [ ] Some configs are hard coded, need to be fixed
 - [ ] Add batch support, may need ragged batching [ragged_batching](https://docs.nvidia.com/deeplearning/triton-inference-server/user-guide/docs/user_guide/ragged_batching.html) 
 - [ ] How to make use of collector?  
@@ -72,7 +73,7 @@ make install -j8
 cp -r install/backends/recommended/ /opt/tritonserver/backends/
 
 cd /workspace/custom_backend_cpu/
-tritonserver --model-repository=examples/model_repos/recommended_models/
+tritonserver --model-repository=/workspace/custom_backend_cpu/examples/model_repos/recommended_models/
 ```
 
 ```bash

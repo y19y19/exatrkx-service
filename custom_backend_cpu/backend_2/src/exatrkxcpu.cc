@@ -192,6 +192,11 @@ class ModelState : public BackendModel {
   // Validate that this model is supported by this backend.
   TRITONSERVER_Error* ValidateModelConfig();
 
+ public:
+   bool model_verbose;
+   std::string model_path;
+   int64_t spacepointFeatures;
+
  private:
   ModelState(TRITONBACKEND_Model* triton_model);
 
@@ -210,8 +215,9 @@ class ModelState : public BackendModel {
   std::vector<int64_t> output_shape_;
 };
 
-ModelState::ModelState(TRITONBACKEND_Model* triton_model)
-    : BackendModel(triton_model), input_shape_initialized_(false), output_shape_initialized_(false)
+ModelState::ModelState(TRITONBACKEND_Model *triton_model)
+    : BackendModel(triton_model), input_shape_initialized_(false), output_shape_initialized_(false),
+      model_path("/workspace/exatrkx_pipeline/datanmodels/"), spacepointFeatures(3), model_verbose(false)
 {
   // Validate that the model's configuration matches what is supported
   // by this backend.
@@ -267,14 +273,22 @@ TRITONSERVER_Error*
 ModelState::SetInputTensorShape(const std::vector<int64_t>& input_shape)
 {
   // Copy the provided shape to the internal variable
+  // to overwrite what is read from the model configuration
+  // for exatrkx, the the values is -1 
   input_nb_shape_ = input_shape;
-  
+
   return nullptr;  // success
 }
 
 TRITONSERVER_Error*
 ModelState::SetOutputTensorShape(const std::vector<int64_t>& output_shape)
 {
+  // Reset the shape initialized flag so that the shape will be
+  // recalculated the next time OutputTensorShape() is called.
+  output_shape_initialized_ = false;
+  output_shape_.clear();
+  output_nb_shape_.clear();
+
   // Copy the provided shape to the internal variable
   output_nb_shape_ = output_shape;
 
@@ -670,16 +684,27 @@ TRITONBACKEND_ModelInstanceExecute(
   input_tensor_shape.push_back(input_tensor_values.size());
   model_state->SetInputTensorShape(input_tensor_shape);
 
-  bool verbose = false;
-  std::string model_path("/workspace/exatrkx_pipeline/datanmodels/");
   std::unique_ptr<ExaTrkXTrackFinding> infer;
-  ExaTrkXTrackFinding::Config config{model_path, verbose};
+  ExaTrkXTrackFinding::Config config{model_state->model_path, model_state->model_verbose};
   ExaTrkXTimeList tot_time;
   infer = std::make_unique<ExaTrkXTrackFinding>(config);
-  std::cout << "Running Inference with local CPUs" << std::endl;
+  LOG_MESSAGE(
+      TRITONSERVER_LOG_INFO,
+      (std::string("model ") + model_state->Name() + ": model loaded")
+          .c_str());
+
+  LOG_MESSAGE(
+      TRITONSERVER_LOG_INFO,
+      (std::string("Running Inference with local CPUs."))
+          .c_str());
+
   int tot_tracks = 0;
-  int64_t spacepointFeatures = 3;
-  int numSpacepoints = input_tensor_values.size() / spacepointFeatures;
+  int numSpacepoints = input_tensor_values.size() / model_state->spacepointFeatures;
+  LOG_MESSAGE(
+      TRITONSERVER_LOG_INFO,
+      (std::string("model ") + model_state->Name() + ": numSpacepoints " +
+       std::to_string(numSpacepoints))
+          .c_str());
 
   std::vector<int> spacepoint_ids;
   for (int i = 0; i < numSpacepoints; ++i) {
@@ -691,7 +716,8 @@ TRITONBACKEND_ModelInstanceExecute(
   infer->getTracks(input_tensor_values, spacepoint_ids, track_candidates, time);
   tot_time.add(time);
   tot_tracks += track_candidates.size();
-  dumpTrackCandidate(track_candidates);
+  // print out the track candidates
+  // dumpTrackCandidate(track_candidates);
 
   std::vector<int> output_data(numSpacepoints, -1); // Initialized all to -1
   for (size_t i = 0; i < track_candidates.size(); ++i) {
