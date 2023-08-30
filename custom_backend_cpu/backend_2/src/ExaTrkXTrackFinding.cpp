@@ -72,7 +72,7 @@ void ExaTrkXTrackFinding::getTracks(
     at::Tensor eOutput;
     try {
         eOutput = e_model.forward(eInputTensorJit).toTensor();
-        std::cout << "Embedding model run successfully" << std::endl;
+        // std::cout << "Embedding model run successfully" << std::endl;
     } catch (const std::runtime_error& e) {
         throw std::runtime_error("Failed to run embedding model: " + std::string(e.what()));
     }

@@ -10,7 +10,7 @@ podman-hpc build -t hrzhao/custom_backend:v0.5 -< docker/Dockerfile
 cd <path-to-exatrkx-service>
 #cd /global/cfs/projectdirs/atlas/hrzhao/ExaTrk/exatrkx-service 
 
-podman-hpc run -it --rm --gpu --shm-size=2g -p8000:8000 -p8001:8001 -p8002:8002 -v ${PWD}:/workspace/ hrzhao/custom_backend:v0.5
+podman-hpc run -it --rm --gpu --shm-size=2g -p8000:8000 -p8001:8001 -p8002:8002 -v ${PWD}:/workspace/ hrzhao/custom_backend:v0.6
 
 mkdir -p /workspace/custom_backend_cpu/backend_2/build
 cd /workspace/custom_backend_cpu/backend_2/build
@@ -39,13 +39,23 @@ python extrkcpu_client.py
 - [x] Fix the shape issue of 2nd inference 
 - [x] Move initialization variables to constructor
   - [ ] public or private? 
-- [ ] Some configs are hard coded, need to be fixed
+- [ ] Some configs are hard coded in the code, need to be able to read from `config.pbtxt`  
+- [ ] Set the ouput type to read from `config.pbtxt`
 - [ ] Add batch support, may need ragged batching [ragged_batching](https://docs.nvidia.com/deeplearning/triton-inference-server/user-guide/docs/user_guide/ragged_batching.html) 
 - [ ] How to make use of collector?  
 - [ ] Backend 1: compile `libExaTrkx.so` as a static library and link it to the backend 
 
 
 # DeV Notes...
+
+```bash
+podman-hpc run -it --rm --ipc=host --net=host --ulimit memlock=-1 --ulimit stack=67108864 -v ${PWD}:/workspace/ hrzhao/test_triton:v0.1
+
+
+
+./inference-cpu -m /workspace/exatrkx_pipeline/datanmodels -d /workspace/exatrkx_pipeline/datanmodels/lrt/inputs/
+
+```
 ```bash
 ./bin/inference-cpu -m ../../../exatrkx_pipeline/datanmodels -d ../../../exatrkx_pipeline/datanmodels/in_e1000.csv
 

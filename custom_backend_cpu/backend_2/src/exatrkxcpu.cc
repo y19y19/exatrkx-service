@@ -657,20 +657,20 @@ TRITONBACKEND_ModelInstanceExecute(
   uint64_t compute_start_ns = 0;
   SET_TIMESTAMP(compute_start_ns);
 
-  LOG_MESSAGE(
-      TRITONSERVER_LOG_INFO,
-      (std::string("model ") + model_state->Name() + ": requests in batch " +
-       std::to_string(request_count))
-          .c_str());
-  std::string tstr;
-  IGNORE_ERROR(BufferAsTypedString(
-      tstr, input_buffer, input_buffer_byte_size,
-      model_state->InputTensorDataType()));
-  LOG_MESSAGE(
-      TRITONSERVER_LOG_INFO,
-      (std::string("batched " + model_state->InputTensorName() + " value: ") +
-       tstr)
-          .c_str());
+  // LOG_MESSAGE(
+  //     TRITONSERVER_LOG_VERBOSE,
+  //     (std::string("model ") + model_state->Name() + ": requests in batch " +
+  //      std::to_string(request_count))
+  //         .c_str());
+  // std::string tstr;
+  // IGNORE_ERROR(BufferAsTypedString(
+  //     tstr, input_buffer, input_buffer_byte_size,
+  //     model_state->InputTensorDataType()));
+  // LOG_MESSAGE(
+  //     TRITONSERVER_LOG_VERBOSE,
+  //     (std::string("batched " + model_state->InputTensorName() + " value: ") +
+  //      tstr)
+  //         .c_str());
 
   // Assuming input_buffer_byte_size is a multiple of sizeof(float), i.e., the buffer's size in bytes is correctly representing a sequence of floats
   size_t num_floats = input_buffer_byte_size / sizeof(float);
@@ -688,23 +688,23 @@ TRITONBACKEND_ModelInstanceExecute(
   ExaTrkXTrackFinding::Config config{model_state->model_path, model_state->model_verbose};
   ExaTrkXTimeList tot_time;
   infer = std::make_unique<ExaTrkXTrackFinding>(config);
-  LOG_MESSAGE(
-      TRITONSERVER_LOG_INFO,
-      (std::string("model ") + model_state->Name() + ": model loaded")
-          .c_str());
+  // LOG_MESSAGE(
+  //     TRITONSERVER_LOG_INFO,
+  //     (std::string("model ") + model_state->Name() + ": model loaded")
+  //         .c_str());
 
-  LOG_MESSAGE(
-      TRITONSERVER_LOG_INFO,
-      (std::string("Running Inference with local CPUs."))
-          .c_str());
+  // LOG_MESSAGE(
+  //     TRITONSERVER_LOG_INFO,
+  //     (std::string("Running Inference with local CPUs."))
+  //         .c_str());
 
   int tot_tracks = 0;
   int numSpacepoints = input_tensor_values.size() / model_state->spacepointFeatures;
-  LOG_MESSAGE(
-      TRITONSERVER_LOG_INFO,
-      (std::string("model ") + model_state->Name() + ": numSpacepoints " +
-       std::to_string(numSpacepoints))
-          .c_str());
+  // LOG_MESSAGE(
+  //     TRITONSERVER_LOG_INFO,
+  //     (std::string("model ") + model_state->Name() + ": numSpacepoints " +
+  //      std::to_string(numSpacepoints))
+  //         .c_str());
 
   std::vector<int> spacepoint_ids;
   for (int i = 0; i < numSpacepoints; ++i) {
@@ -719,9 +719,9 @@ TRITONBACKEND_ModelInstanceExecute(
   // print out the track candidates
   // dumpTrackCandidate(track_candidates);
 
-  std::vector<int> output_data(numSpacepoints, -1); // Initialized all to -1
-  for (size_t i = 0; i < track_candidates.size(); ++i) {
-    for (int Spacepoint_idx : track_candidates[i]) {
+  std::vector<int64_t> output_data(numSpacepoints, -1); // Initialized all to -1
+  for (int64_t i = 0; i < track_candidates.size(); ++i) {
+    for (int64_t Spacepoint_idx : track_candidates[i]) {
         if (Spacepoint_idx <= numSpacepoints) {
             output_data[Spacepoint_idx] = i;
         }
