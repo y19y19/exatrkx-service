@@ -124,7 +124,7 @@ int main(int argc, char* argv[])
     
 
     std::unique_ptr<ExaTrkXTrackFindingTriton> infer;
-    ExaTrkXTrackFindingTriton::Config config{"exatrkx", url, verbose};
+    ExaTrkXTrackFindingTriton::Config config{"nonbatching", url, verbose};
     infer = std::make_unique<ExaTrkXTrackFindingTriton>(config);
 
     std::cout << "Running Inference with ExaTrkX as a service." << std::endl;

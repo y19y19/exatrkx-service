@@ -25,7 +25,7 @@ void ExaTrkXTrackFinding::initTrainedModels(){
         f_model.eval();
         g_model = torch::jit::load(l_gnnModelPath.c_str(), device);
         g_model.eval();
-        std::cout << "Models loaded successfully" << std::endl;
+        // std::cout << "Models loaded successfully" << std::endl;
     } catch (const c10::Error& e) {
         throw std::invalid_argument("Failed to load models: " + e.msg());
     }

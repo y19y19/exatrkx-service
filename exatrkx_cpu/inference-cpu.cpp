@@ -102,7 +102,7 @@ int main(int argc, char* argv[])
     std::unique_ptr<ExaTrkXTrackFinding> infer;
     ExaTrkXTrackFinding::Config config{model_path, verbose};
     infer = std::make_unique<ExaTrkXTrackFinding>(config);
-    std::cout << "Running Inference with local CPUs" << std::endl;
+    // std::cout << "Running Inference with local CPUs" << std::endl;
 
     const fs::path filepath(input_file_path);
     std::error_code ec;
@@ -142,7 +142,7 @@ int main(int argc, char* argv[])
                 }
             }
             int nfiles = std::distance(filenames.begin(), filenames.end());
-            std::cout << "Running " << nfiles << " files in " << nthreads << " threads." << std::endl;
+            // std::cout << "Running " << nfiles << " files in " << nthreads << " threads." << std::endl;
 
             tbb::parallel_for_each(
                 filenames.begin(), filenames.end(),

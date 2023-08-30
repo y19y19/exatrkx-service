@@ -38,7 +38,7 @@ target_link_libraries(
   PUBLIC
   ${TORCH_LIBRARIES}
   PRIVATE
-  libfaiss.a
+  libfaiss.so
 )
 
 set_target_properties(ExaTrkXCPU

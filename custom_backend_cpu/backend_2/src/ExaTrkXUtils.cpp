@@ -15,7 +15,7 @@ void buildEdges(
     // build the index without training
     float radius = rVal * rVal;
     faiss::IndexFlatL2 index(embeddingDim);
-    printf("is_trained = %s\n", index.is_trained ? "true" : "false");
+    // printf("is_trained = %s\n", index.is_trained ? "true" : "false");
     index.add(numSpacepoints, embedFeatures.data());
 
     faiss::idx_t* I = new faiss::idx_t[kVal * numSpacepoints];
