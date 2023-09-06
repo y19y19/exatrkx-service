@@ -7,8 +7,11 @@
 #include <unistd.h>
 #include <limits.h>
 
-#include "tbb/parallel_for_each.h"
-#include "tbb/task_scheduler_init.h"
+// #include <tbb/parallel_for_each.h>
+// #include <tbb/task_scheduler_init.h>
+#include <tbb/parallel_for.h>
+#include <tbb/task_arena.h>
+#include <tbb/info.h>
 
 #include <memory>
 #include <string>
@@ -95,7 +98,13 @@ int main(int argc, char* argv[])
     }
 
     // start tbb scheduler
-    tbb::task_scheduler_init init(nthreads);
+    // tbb::task_scheduler_init init(nthreads);    
+    // int num_threads = tbb::info::default_concurrency();
+    // if (nthreads > num_threads) {
+    //     std::cerr << "Warning: number of threads requested (" << nthreads \
+    //     << ") is greater than the number of threads available (" << num_threads << ")." << std::endl;
+    // }
+    tbb::task_arena arena(nthreads);
 
     std::cout << "Input file: " << input_file_path << std::endl;
 
@@ -107,6 +116,8 @@ int main(int argc, char* argv[])
     const fs::path filepath(input_file_path);
     std::error_code ec;
     ExaTrkXTimeList tot_time;
+    ExaTrkXTimer timer;
+    timer.start();
     int tot_tracks = 0;
     int ievt = 0;
 
@@ -144,11 +155,37 @@ int main(int argc, char* argv[])
             int nfiles = std::distance(filenames.begin(), filenames.end());
             // std::cout << "Running " << nfiles << " files in " << nthreads << " threads." << std::endl;
 
-            tbb::parallel_for_each(
-                filenames.begin(), filenames.end(),
-                [&](const std::string& fname) {
-                    run_one_file(fname);
-                });  // end parallel_for_each
+            // // set affinity for each thread
+            // cpu_set_t cpuset;
+            // CPU_ZERO(&cpuset);
+            // int ncpus = sysconf(_SC_NPROCESSORS_ONLN);
+            // int ncpus_per_thread = ncpus/nthreads;
+            // for (int i=0; i < nthreads; ++i) {
+            //     for (int j=0; j < ncpus_per_thread; ++j) {
+            //         CPU_SET(i*ncpus_per_thread + j, &cpuset);
+            //     }
+            //     pthread_t thread = pthread_self();
+            //     pthread_setaffinity_np(thread, sizeof(cpu_set_t), &cpuset);
+            // }
+
+            // // https://oneapi-src.github.io/oneTBB/main/tbb_userguide/Cook_Until_Done_parallel_do.html
+            // // the fetching of work is serial
+            // tbb::parallel_for_each(
+            //     filenames.begin(), filenames.end(),
+            //     [&](const std::string& fname) {
+            //         run_one_file(fname);
+            //     });  // end parallel_for_each
+
+            // use tbb parallel_for to process each file
+            arena.execute([&](){
+                tbb::parallel_for(
+                    tbb::blocked_range<int>(0, nfiles),
+                    [&](const tbb::blocked_range<int>& r) {
+                        for (int i=r.begin(); i < r.end(); ++i) {
+                            run_one_file(filenames[i]);
+                        }
+                    });  // end parallel_for
+            });
 
         } else {
             // sequential execution of all files in directory
@@ -166,18 +203,21 @@ int main(int argc, char* argv[])
         std::cerr << "Error: " << filepath << " is not a file or directory." << std::endl;
         exit(EXIT_FAILURE);
     }
-    printf("Total %d tracks in %d events.\n", tot_tracks, tot_time.numEvts());
-    tot_time.summary();
-    printf("-----------------------------------------------------\n");
-    printf("Summary of the first event\n");
-    tot_time.summaryOneEvent(0);
-    printf("-----------------------------------------------------\n");
-    printf("Summary of without first 1 event\n");
-    tot_time.summary(1);
-    printf("Summary of the last event\n");
-    tot_time.summaryOneEvent(tot_time.numEvts()-1);
-    std::stringstream ss;
-    ss << "time_t" << nthreads << "_s" << server_type << ".csv";
-    tot_time.save(ss.str());
+    printf("Total time: %.4f seconds\n", timer.stopAndGetElapsedTime());
+
+
+    // printf("Total %d tracks in %d events.\n", tot_tracks, tot_time.numEvts());
+    // tot_time.summary();
+    // printf("-----------------------------------------------------\n");
+    // printf("Summary of the first event\n");
+    // tot_time.summaryOneEvent(0);
+    // printf("-----------------------------------------------------\n");
+    // printf("Summary of without first 1 event\n");
+    // tot_time.summary(1);
+    // printf("Summary of the last event\n");
+    // tot_time.summaryOneEvent(tot_time.numEvts()-1);
+    // std::stringstream ss;
+    // ss << "time_t" << nthreads << "_s" << server_type << ".csv";
+    // tot_time.save(ss.str());
     return 0;
 }
