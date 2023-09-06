@@ -25,7 +25,7 @@ void ExaTrkXTrackFinding::initTrainedModels(){
         f_model.eval();
         g_model = torch::jit::load(l_gnnModelPath.c_str(), device);
         g_model.eval();
-        std::cout << "Models loaded successfully" << std::endl;
+        // std::cout << "Models loaded successfully" << std::endl;
     } catch (const c10::Error& e) {
         throw std::invalid_argument("Failed to load models: " + e.msg());
     }
@@ -77,7 +77,7 @@ void ExaTrkXTrackFinding::getTracks(
         throw std::runtime_error("Failed to run embedding model: " + std::string(e.what()));
     }
 
-    timeInfo.embedding = timer.stopAndGetElapsedTime();
+    // timeInfo.embedding = timer.stopAndGetElapsedTime();
 
     // ************
     // Building Edges
@@ -100,7 +100,7 @@ void ExaTrkXTrackFinding::getTracks(
     // std::cout << "Built " << edgeList.size(1) << " edges. " <<  edgeList.size(0) << std::endl;
     // std::cout << edgeList.slice(1, 0, 5) << std::endl;
 
-    timeInfo.building = timer.stopAndGetElapsedTime();
+    // timeInfo.building = timer.stopAndGetElapsedTime();
 
     // ************
     // Filtering
@@ -108,6 +108,7 @@ void ExaTrkXTrackFinding::getTracks(
     // std::cout << "Get scores for " << numEdges<< " edges." << std::endl;
 
     timer.start();
+    
     std::vector<torch::jit::IValue> fInputTensorJit;
     fInputTensorJit.push_back(eLibInputTensor.to(device));
     fInputTensorJit.push_back(edgeList.to(device));
@@ -125,7 +126,7 @@ void ExaTrkXTrackFinding::getTracks(
 
     // std::cout << "After filtering: " << numEdgesAfterF << " edges." << std::endl;
 
-    timeInfo.filtering = timer.stopAndGetElapsedTime();
+    // timeInfo.filtering = timer.stopAndGetElapsedTime();
 
     // ************
     // GNN
@@ -139,7 +140,8 @@ void ExaTrkXTrackFinding::getTracks(
     auto gOutput = g_model.forward(gInputTensorJit).toTensor();
     gOutput.sigmoid_();
     gOutput = gOutput.cpu();
-    timeInfo.gnn = timer.stopAndGetElapsedTime();
+
+    // timeInfo.gnn = timer.stopAndGetElapsedTime();
 
     // std::cout << "GNN scores for " << gOutput.size(0) << " edges." << std::endl;
     // std::cout << gOutput.slice(0, 0, 5) << std::endl;
@@ -201,6 +203,7 @@ void ExaTrkXTrackFinding::getTracks(
             existTrkIdx++;
         }
     }
-    timeInfo.labeling = timer.stopAndGetElapsedTime();
-    timeInfo.total = tot_timer.stopAndGetElapsedTime();
+    
+    // timeInfo.labeling = timer.stopAndGetElapsedTime();
+    // timeInfo.total = tot_timer.stopAndGetElapsedTime();
 }
