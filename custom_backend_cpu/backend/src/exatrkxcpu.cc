@@ -692,7 +692,7 @@ TRITONBACKEND_ModelInstanceExecute(
   tot_tracks += track_candidates.size();
 
   std::vector<int64_t> output_data(numSpacepoints, -1); // Initialized all to -1
-  for (int64_t i = 0; i < track_candidates.size(); ++i) {
+  for (int64_t i = 0; i < (int64_t) track_candidates.size(); ++i) {
     for (int64_t Spacepoint_idx : track_candidates[i]) {
         if (Spacepoint_idx <= numSpacepoints) {
             output_data[Spacepoint_idx] = i;
