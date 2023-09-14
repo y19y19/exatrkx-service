@@ -83,10 +83,6 @@ FetchContent_MakeAvailable(repo-common repo-core repo-backend)
 add_subdirectory(src/exatrkx_cpu)
 
 find_package(Torch REQUIRED)
-include_directories(
-  "${TORCH_INCLUDE_DIRS}"
-)
-message(STATUS "Torch libraries: ${TORCH_LIBRARIES}")
 #
 # The backend must be built into a shared library. Use an ldscript to
 # hide all symbols except for the TRITONBACKEND API.
@@ -101,12 +97,6 @@ add_library(
 add_library(
   TritonExatrkxCPURuntimeBackend::triton-exatrkxcpu-backend ALIAS triton-exatrkxcpu-backend
 )
-target_include_directories(
-  triton-exatrkxcpu-backend
-  PRIVATE
-    ${CMAKE_CURRENT_SOURCE_DIR}/src
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/exatrkx_cpu
-)
 
 target_compile_features(triton-exatrkxcpu-backend PRIVATE cxx_std_11)
 target_compile_options(
@@ -120,11 +110,7 @@ target_link_libraries(
   triton-exatrkxcpu-backend
   PRIVATE
     ExaTrkXCPU
-)
-
-target_link_libraries(
-  triton-exatrkxcpu-backend 
-  PRIVATE
+    ${TORCH_LIBRARIES}
     triton-core-serverapi   # from repo-core
     triton-core-backendapi  # from repo-core
     triton-core-serverstub  # from repo-core
