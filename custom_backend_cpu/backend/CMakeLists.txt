@@ -140,7 +140,6 @@ set(INSTALL_CONFIGDIR ${CMAKE_INSTALL_LIBDIR}/cmake/TritonExatrkxCPUBackend)
 install(
   TARGETS
     triton-exatrkxcpu-backend
-    ExaTrkXCPU
   EXPORT
     triton-exatrkxcpu-backend-targets
   LIBRARY DESTINATION ${CMAKE_INSTALL_PREFIX}/backends/exatrkxcpu
