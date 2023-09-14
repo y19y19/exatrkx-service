@@ -11,3 +11,4 @@ cmake -S . -B build -DCMAKE_C_COMPILER=`which gcc` \
     -DCMAKE_PREFIX_PATH="$(python -c 'import torch;print(torch.utils.cmake_prefix_path)')"
 
 cmake --build build --target inference-cpu -- $BUILD_ARGS
+cmake --build build --target install -- $BUILD_ARGS
