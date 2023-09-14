@@ -80,8 +80,6 @@ FetchContent_Declare(
 )
 FetchContent_MakeAvailable(repo-common repo-core repo-backend)
 
-add_subdirectory(src/exatrkx_cpu)
-
 find_package(Torch REQUIRED)
 #
 # The backend must be built into a shared library. Use an ldscript to
