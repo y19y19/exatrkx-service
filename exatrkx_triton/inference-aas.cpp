@@ -90,7 +90,7 @@ int main(int argc, char* argv[])
     std::string url("localhost:8001");
     std::string triton_model_name("exatrkxcpu");
     
-    while ((opt = getopt(argc, argv, "vht:d:u:")) != -1) {
+    while ((opt = getopt(argc, argv, "vht:d:u:m:")) != -1) {
         switch (opt) {
             case 'd':
                 input_file_path = optarg;
@@ -104,10 +104,11 @@ int main(int argc, char* argv[])
             case 'u':
                 url = optarg;
                 break;
-            case 'h':
-                help = true;
             case 'm':
                 triton_model_name = optarg;
+                break;
+            case 'h':
+                help = true;
             default:
                 fprintf(stderr, "Usage: %s [-hv] [-m triton_model_name] [-d input_file_path] [-s server_type]\n", argv[0]);
                 if (help) {
