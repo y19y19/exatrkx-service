@@ -38,7 +38,7 @@ target_link_libraries(
   PUBLIC
   ${TORCH_LIBRARIES}
   PRIVATE
-  libfaiss.a
+  libfaiss.so
 )
 
 set_target_properties(ExaTrkXCPU
@@ -51,4 +51,15 @@ target_link_libraries(inference-cpu PUBLIC tbb ExaTrkXCPU)
 set_target_properties(inference-cpu
 PROPERTIES  CXX_STANDARD                        17
             CXX_STANDARD_REQUIRED               ON
+)
+
+install(
+  TARGETS ExaTrkXCPU
+  DESTINATION lib
+  EXPORT ExaTrkXCPUTargets
+)
+
+file(GLOB HeaderFiles *.hpp)
+install(FILES ${HeaderFiles}
+  DESTINATION include/exatrkxcpu
 )
