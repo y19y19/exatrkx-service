@@ -88,6 +88,7 @@ int main(int argc, char* argv[])
     bool verbose = false;
     int nthreads = 1;
     std::string url("localhost:8001");
+    std::string triton_model_name("exatrkxcpu");
     
     while ((opt = getopt(argc, argv, "vht:d:u:")) != -1) {
         switch (opt) {
@@ -105,9 +106,12 @@ int main(int argc, char* argv[])
                 break;
             case 'h':
                 help = true;
+            case 'm':
+                triton_model_name = optarg;
             default:
-                fprintf(stderr, "Usage: %s [-hv] [-d input_file_path] [-s server_type]\n", argv[0]);
+                fprintf(stderr, "Usage: %s [-hv] [-m triton_model_name] [-d input_file_path] [-s server_type]\n", argv[0]);
                 if (help) {
+                    std::cerr << " -m: triton model name, exatrkxcpu/exatrkxgpu" << std::endl;
                     std::cerr << " -d: input data/directory" << std::endl;
                     std::cerr << " -t: number of threads" << std::endl;
                     std::cerr << " -u: url of server" << std::endl;
@@ -124,7 +128,7 @@ int main(int argc, char* argv[])
     
 
     std::unique_ptr<ExaTrkXTrackFindingTriton> infer;
-    ExaTrkXTrackFindingTriton::Config config{"nonbatching", url, verbose};
+    ExaTrkXTrackFindingTriton::Config config{triton_model_name, url, verbose};
     infer = std::make_unique<ExaTrkXTrackFindingTriton>(config);
 
     std::cout << "Running Inference with ExaTrkX as a service." << std::endl;

@@ -31,10 +31,10 @@
 #include "triton/backend/backend_output_responder.h"
 #include "triton/core/tritonbackend.h"
 
-#include "exatrkx/ExaTrkXTrackFinding.hpp"
+#include "exatrkxcpu/ExaTrkXTrackFinding.hpp"
 
 
-namespace triton { namespace backend { namespace recommended {
+namespace triton { namespace backend { namespace exatrkxcpu {
 
 //
 // Backend that demonstrates the TRITONBACKEND API. This backend works

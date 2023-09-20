@@ -56,10 +56,10 @@ PROPERTIES  CXX_STANDARD                        17
 install(
   TARGETS ExaTrkXCPU
   DESTINATION lib
-  EXPORT EXaTrkXCPUTargets
+  EXPORT ExaTrkXCPUTargets
 )
 
 file(GLOB HeaderFiles *.hpp)
 install(FILES ${HeaderFiles}
-  DESTINATION include/exatrkx
+  DESTINATION include/exatrkxcpu
 )
