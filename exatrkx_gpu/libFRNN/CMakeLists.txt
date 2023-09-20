@@ -46,3 +46,10 @@ target_compile_options(frnn
     PUBLIC  "$<$<COMPILE_LANGUAGE:CXX>:${FRNN_CXX_FLAGS}>"
             "$<BUILD_INTERFACE:$<$<COMPILE_LANGUAGE:CUDA>:${FRNN_CUDA_FLAGS}>>"
 )
+
+install(TARGETS frnn
+        LIBRARY DESTINATION lib
+        ARCHIVE DESTINATION lib
+        RUNTIME DESTINATION bin
+        INCLUDES DESTINATION include
+        )

@@ -48,6 +48,8 @@ target_link_libraries(
     ExaTrkXGPU
   PUBLIC
     ${TORCH_LIBRARIES}
+    ${Python3_LIBRARIES}
+    python3.8
 )
 target_link_libraries(
     ExaTrkXGPU
@@ -65,4 +67,15 @@ target_compile_definitions(inference-gpu PUBLIC CUDA_API_PER_THREAD_DEFAULT_STRE
 set_target_properties(inference-gpu
 PROPERTIES  CXX_STANDARD                        17
             CXX_STANDARD_REQUIRED               ON
+)
+
+install(
+  TARGETS ExaTrkXGPU
+  DESTINATION lib
+  EXPORT ExaTrkXGPUTargets
+)
+
+file(GLOB HeaderFiles *.hpp)
+install(FILES ${HeaderFiles}
+  DESTINATION include/exatrkxgpu
 )

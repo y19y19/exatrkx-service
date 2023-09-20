@@ -103,7 +103,8 @@ void ExaTrkXTrackFinding::getTracks(
     timer.start();
     std::vector<torch::jit::IValue> fInputTensorJit;
     fInputTensorJit.push_back(eLibInputTensor.to(device));
-    fInputTensorJit.push_back(edgeList.to(device));
+    edgeList = edgeList.to(device);
+    fInputTensorJit.push_back(edgeList);
     at::Tensor fOutput = f_model.forward(fInputTensorJit).toTensor();
     fOutput.squeeze_();
     fOutput.sigmoid_();
@@ -147,6 +148,8 @@ void ExaTrkXTrackFinding::getTracks(
     std::vector<vertex_t> colIndices;
     std::vector<float> edgeWeights;
     std::vector<vertex_t> trackLabels(numSpacepoints);
+    // Move tensor to CPU if it's on another device
+    edgesAfterF = edgesAfterF.to(torch::kCPU);
     std::copy(
         edgesAfterF.data_ptr<int64_t>(),
         edgesAfterF.data_ptr<int64_t>()+numEdgesAfterF,
