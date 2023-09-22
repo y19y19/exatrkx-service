@@ -690,23 +690,14 @@ TRITONBACKEND_ModelInstanceExecute(
   ExaTrkXTrackFinding::Config config{model_state->model_path, model_state->model_verbose};
   ExaTrkXTimeList tot_time;
   infer = std::make_unique<ExaTrkXTrackFinding>(config);
-  LOG_MESSAGE(
-      TRITONSERVER_LOG_INFO,
-      (std::string("model ") + model_state->Name() + ": model loaded")
-          .c_str());
-
-  LOG_MESSAGE(
-      TRITONSERVER_LOG_INFO,
-      (std::string("Running Inference with triton GPUs."))
-          .c_str());
 
   int tot_tracks = 0;
   int numSpacepoints = input_tensor_values.size() / model_state->spacepointFeatures;
-  LOG_MESSAGE(
-      TRITONSERVER_LOG_INFO,
-      (std::string("model ") + model_state->Name() + ": numSpacepoints " +
-       std::to_string(numSpacepoints))
-          .c_str());
+  // LOG_MESSAGE(
+  //     TRITONSERVER_LOG_VERBOSE,
+  //     (std::string("model ") + model_state->Name() + ": numSpacepoints " +
+  //      std::to_string(numSpacepoints))
+  //         .c_str());
 
   std::vector<int> spacepoint_ids;
   for (int i = 0; i < numSpacepoints; ++i) {

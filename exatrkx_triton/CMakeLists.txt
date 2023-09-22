@@ -46,5 +46,8 @@ target_link_libraries(
 )
 
 # install packages
-# install(TARGETS inference-aas
-#         DESTINATION ${CMAKE_BINARY_DIR}/bin)
+install(TARGETS inference-aas
+        DESTINATION bin
+)
+        
+        
