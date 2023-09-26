@@ -74,7 +74,7 @@ sbatch --account=<elvis> deploy_triton.sh
 ## Inference Binary
 Run the inference binary in parallel with:
 ```bash
-./run_exatrkx.sh server_ip_address:8001 [optional: -i data_folder -n njobs -j cpu_threads_per_job -q/--quiet]
+./run_exatrkx.sh server_ip_address:8001 [optional: -d data_folder -n njobs -j cpu_threads_per_job -q/--quiet]
 ```
 
 ## Grafana Dashboard + Nginx Load Balancer
