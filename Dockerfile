@@ -1,7 +1,7 @@
 FROM hrzhao076/custom_backend:2.0
-LABEL description="the Exa.TrkX custom backend based on tritonserver, including backend library"
+LABEL description="the Exa.TrkX custom backend based on tritonserver, including backend library; docker.io: `hrzhao076/exatrkx_triton_backend`"
 LABEL maintainer="Haoran Zhao <haoran.zhao@cern.ch>"
-LABEL version="3.0"
+LABEL version="1.0"
 
 # Install dependencies
 RUN apt update && apt install -y time tree && apt clean -y 

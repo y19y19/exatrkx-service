@@ -99,7 +99,7 @@ def main():
 
         ax.set_xlabel('Run Number')
         ax.set_ylabel('Real Time (s)')
-        ax.set_title(f'Real Time for 5 Runs of {script}')
+        ax.set_title(f'Real Time for {num_runs} Runs of {script}')
         fig.savefig(f"results_{script.split(sep='.')[0]}.png")
     
     
