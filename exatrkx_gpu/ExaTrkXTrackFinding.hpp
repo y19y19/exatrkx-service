@@ -33,7 +33,8 @@ public:
         std::vector<float>& inputValues,
         std::vector<int>& spacepointIDs,
         std::vector<std::vector<int> >& trackCandidates,
-        ExaTrkXTime& timeInfo) const;
+        ExaTrkXTime& timeInfo, 
+        int32_t device_id=0) const;
 
     const Config& config() const { return m_cfg; }
 

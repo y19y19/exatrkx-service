@@ -192,9 +192,10 @@ class ModelState : public BackendModel {
   TRITONSERVER_Error* ValidateModelConfig();
 
  public:
-   std::string model_path = "/workspace/exatrkx_pipeline/datanmodels/";
-   int64_t spacepointFeatures = 3;
-   bool model_verbose= false;
+   std::string model_path;
+   int64_t spacepointFeatures;
+   bool model_verbose;
+   int32_t device_id;
 
  private:
   ModelState(TRITONBACKEND_Model* triton_model);
@@ -222,6 +223,43 @@ ModelState::ModelState(TRITONBACKEND_Model *triton_model)
   // Validate that the model's configuration matches what is supported
   // by this backend.
   THROW_IF_BACKEND_MODEL_ERROR(ValidateModelConfig());
+
+  const char* path = nullptr;
+  TRITONBACKEND_ArtifactType artifact_type;
+  THROW_IF_BACKEND_MODEL_ERROR(
+      TRITONBACKEND_ModelRepository(triton_model, &artifact_type, &path));
+  std::string execution_model_path = "";
+
+  TRITONBACKEND_Backend* backend;
+  THROW_IF_BACKEND_MODEL_ERROR(
+      TRITONBACKEND_ModelBackend(triton_model, &backend));
+
+  triton::common::TritonJson::Value params;
+  common::TritonJson::Value model_config;
+  if (model_config_.Find("parameters", &params)) {
+    // Skip the EXECUTION_MODEL_PATH variable if it doesn't exist.
+    TRITONSERVER_Error* error =
+        GetParameterValue(params, "EXECUTION_MODEL_PATH", &execution_model_path);
+    if (error == nullptr) {
+      std::string relative_path_keyword = "$$TRITON_MODEL_DIRECTORY";
+      size_t relative_path_loc =
+          execution_model_path.find(relative_path_keyword);
+      if (relative_path_loc != std::string::npos) {
+        execution_model_path.replace(
+            relative_path_loc, relative_path_loc + relative_path_keyword.size(),
+            path);
+      }
+      LOG_MESSAGE(
+          TRITONSERVER_LOG_INFO,
+          (std::string("Using the model path: ") + execution_model_path)
+              .c_str());
+          // update the model path in the model state here
+          model_path = execution_model_path;
+    } else {
+      // Delete the error
+      TRITONSERVER_ErrorDelete(error);
+    }
+  }
 }
 
 TRITONSERVER_Error*
@@ -481,6 +519,23 @@ extern "C" {
 TRITONSERVER_Error*
 TRITONBACKEND_ModelInstanceInitialize(TRITONBACKEND_ModelInstance* instance)
 {
+  // Get the model name,  device id and the kind of model instance. 
+  const char* cname;
+  RETURN_IF_ERROR(TRITONBACKEND_ModelInstanceName(instance, &cname));
+  std::string name(cname);
+
+  int32_t device_id;
+  RETURN_IF_ERROR(TRITONBACKEND_ModelInstanceDeviceId(instance, &device_id));
+  TRITONSERVER_InstanceGroupKind kind;
+  RETURN_IF_ERROR(TRITONBACKEND_ModelInstanceKind(instance, &kind));
+
+  LOG_MESSAGE(
+      TRITONSERVER_LOG_INFO,
+      (std::string("TRITONBACKEND_ModelInstanceInitialize: ") + name + " (" +
+       TRITONSERVER_InstanceGroupKindString(kind) + " device " +
+       std::to_string(device_id) + ")")
+          .c_str());
+
   // Get the model state associated with this instance's model.
   TRITONBACKEND_Model* model;
   RETURN_IF_ERROR(TRITONBACKEND_ModelInstanceModel(instance, &model));
@@ -497,6 +552,7 @@ TRITONBACKEND_ModelInstanceInitialize(TRITONBACKEND_ModelInstance* instance)
   RETURN_IF_ERROR(TRITONBACKEND_ModelInstanceSetState(
       instance, reinterpret_cast<void*>(instance_state)));
 
+  model_state->device_id = device_id;
   return nullptr;  // success
 }
 
@@ -687,6 +743,10 @@ TRITONBACKEND_ModelInstanceExecute(
   model_state->SetInputTensorShape(input_tensor_shape);
 
   std::unique_ptr<ExaTrkXTrackFinding> infer;
+  int32_t device_id = 0;
+  // Get device_id from the model state
+  device_id = model_state->device_id; 
+
   ExaTrkXTrackFinding::Config config{model_state->model_path, model_state->model_verbose};
   ExaTrkXTimeList tot_time;
   infer = std::make_unique<ExaTrkXTrackFinding>(config);
@@ -706,7 +766,7 @@ TRITONBACKEND_ModelInstanceExecute(
 
   std::vector<std::vector<int>> track_candidates;
   ExaTrkXTime time;
-  infer->getTracks(input_tensor_values, spacepoint_ids, track_candidates, time);
+  infer->getTracks(input_tensor_values, spacepoint_ids, track_candidates, time, device_id);
   tot_time.add(time);
   tot_tracks += track_candidates.size();
   // print out the track candidates

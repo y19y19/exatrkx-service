@@ -7,3 +7,4 @@ cmake -S . -B build \
 
 
  cmake --build build --target install
+ cp -r build/install/install/backends/exatrkxcpu /opt/tritonserver/backends

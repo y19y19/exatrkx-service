@@ -17,5 +17,12 @@ output [
 instance_group [
   {
     kind: KIND_GPU
+    count: 4
+    gpus: [ 0, 1, 2, 3]
   }
 ]
+
+parameters: {
+  key: "EXECUTION_MODEL_PATH",
+  value: {string_value: "/workspace/exatrkx_pipeline/datanmodels/"}
+}
