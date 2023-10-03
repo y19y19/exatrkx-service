@@ -195,7 +195,6 @@ class ModelState : public BackendModel {
    std::string model_path;
    int64_t spacepointFeatures;
    bool model_verbose;
-   int32_t device_id;
 
  private:
   ModelState(TRITONBACKEND_Model* triton_model);
@@ -519,23 +518,6 @@ extern "C" {
 TRITONSERVER_Error*
 TRITONBACKEND_ModelInstanceInitialize(TRITONBACKEND_ModelInstance* instance)
 {
-  // Get the model name,  device id and the kind of model instance. 
-  const char* cname;
-  RETURN_IF_ERROR(TRITONBACKEND_ModelInstanceName(instance, &cname));
-  std::string name(cname);
-
-  int32_t device_id;
-  RETURN_IF_ERROR(TRITONBACKEND_ModelInstanceDeviceId(instance, &device_id));
-  TRITONSERVER_InstanceGroupKind kind;
-  RETURN_IF_ERROR(TRITONBACKEND_ModelInstanceKind(instance, &kind));
-
-  LOG_MESSAGE(
-      TRITONSERVER_LOG_INFO,
-      (std::string("TRITONBACKEND_ModelInstanceInitialize: ") + name + " (" +
-       TRITONSERVER_InstanceGroupKindString(kind) + " device " +
-       std::to_string(device_id) + ")")
-          .c_str());
-
   // Get the model state associated with this instance's model.
   TRITONBACKEND_Model* model;
   RETURN_IF_ERROR(TRITONBACKEND_ModelInstanceModel(instance, &model));
@@ -552,8 +534,6 @@ TRITONBACKEND_ModelInstanceInitialize(TRITONBACKEND_ModelInstance* instance)
   RETURN_IF_ERROR(TRITONBACKEND_ModelInstanceSetState(
       instance, reinterpret_cast<void*>(instance_state)));
 
-  model_state->device_id = device_id;
-  // model_state->device_id = 1;
   return nullptr; // success
 }
 
@@ -589,6 +569,22 @@ TRITONBACKEND_ModelInstanceExecute(
     TRITONBACKEND_ModelInstance* instance, TRITONBACKEND_Request** requests,
     const uint32_t request_count)
 {
+  // Get the model name, device id and the kind of model instance. 
+  const char* cname;
+  RETURN_IF_ERROR(TRITONBACKEND_ModelInstanceName(instance, &cname));
+  std::string name(cname);
+  int32_t device_id;
+  RETURN_IF_ERROR(TRITONBACKEND_ModelInstanceDeviceId(instance, &device_id));
+  TRITONSERVER_InstanceGroupKind kind;
+  RETURN_IF_ERROR(TRITONBACKEND_ModelInstanceKind(instance, &kind));
+
+  LOG_MESSAGE(
+      TRITONSERVER_LOG_INFO,
+      (std::string("Model Instance: ") + name + " (" +
+       TRITONSERVER_InstanceGroupKindString(kind) + " device " +
+       std::to_string(device_id) + ")")
+          .c_str());
+
   // Collect various timestamps during the execution of this batch or
   // requests. These values are reported below before returning from
   // the function.
@@ -744,11 +740,8 @@ TRITONBACKEND_ModelInstanceExecute(
   model_state->SetInputTensorShape(input_tensor_shape);
 
   std::unique_ptr<ExaTrkXTrackFinding> infer;
-  int32_t device_id = 0;
-  // Get device_id from the model state
-  device_id = model_state->device_id; 
 
-  ExaTrkXTrackFinding::Config config{model_state->model_path, model_state->model_verbose, device_id=model_state->device_id};
+  ExaTrkXTrackFinding::Config config{model_state->model_path, model_state->model_verbose, device_id=device_id};
   ExaTrkXTimeList tot_time;
   infer = std::make_unique<ExaTrkXTrackFinding>(config);
 

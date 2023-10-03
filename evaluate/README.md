@@ -35,3 +35,20 @@ The following results are obtained on a nersc compute node with 1 GPU. The time 
 ![GPU direct inference](results_inference_gpu_direct.png)
 ![GPU triton inference](results_inference_gpu_triton.png)
 ![GPU direct vs. triton](gpu_comparison.png)
+
+# Developer Notes
+## perf_analyzer
+
+``` bash 
+perf_analyzer -m exatrkxgpu --percentile=95 -i grpc --shape FEATURES:100,3
+```
+
+```
+inference-gpu -m /workspace/exatrkx_pipeline/datanmodels/ -d /workspace/exatrkx_pipeline/datanmodels/in_e1000.csv
+
+inference-aas -m exatrkxgpu -d /workspace/exatrkx_pipeline/datanmodels/in_e1000.csv
+```
+
+```bash
+tritonserver --model-repository=/workspace/custom_backend_gpu/model_repo/ --log-verbose=4
+```
