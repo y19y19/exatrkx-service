@@ -553,7 +553,8 @@ TRITONBACKEND_ModelInstanceInitialize(TRITONBACKEND_ModelInstance* instance)
       instance, reinterpret_cast<void*>(instance_state)));
 
   model_state->device_id = device_id;
-  return nullptr;  // success
+  // model_state->device_id = 1;
+  return nullptr; // success
 }
 
 // Triton calls TRITONBACKEND_ModelInstanceFinalize when a model
@@ -747,7 +748,7 @@ TRITONBACKEND_ModelInstanceExecute(
   // Get device_id from the model state
   device_id = model_state->device_id; 
 
-  ExaTrkXTrackFinding::Config config{model_state->model_path, model_state->model_verbose};
+  ExaTrkXTrackFinding::Config config{model_state->model_path, model_state->model_verbose, device_id=model_state->device_id};
   ExaTrkXTimeList tot_time;
   infer = std::make_unique<ExaTrkXTrackFinding>(config);
 
