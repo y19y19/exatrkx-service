@@ -27,11 +27,13 @@ void ExaTrkXTrackFinding::initTrainedModels(){
     std::string l_gnnModelPath(m_cfg.modelDir + "/torchscript/gnn.pt");
     c10::InferenceMode guard(true);
     try {
-        e_model = torch::jit::load(l_embedModelPath.c_str());
+        std::cout << "Test Point m_cfg in initTrainedModels:  " << m_cfg.device_id << std::endl;
+        torch::Device device(torch::kCUDA, m_cfg.device_id);
+        e_model = torch::jit::load(l_embedModelPath.c_str(), device);
         e_model.eval();
-        f_model = torch::jit::load(l_filterModelPath.c_str());
+        f_model = torch::jit::load(l_filterModelPath.c_str(), device);
         f_model.eval();
-        g_model = torch::jit::load(l_gnnModelPath.c_str());
+        g_model = torch::jit::load(l_gnnModelPath.c_str(), device);
         g_model.eval();
     } catch (const c10::Error& e) {
         throw std::invalid_argument("Failed to load models: " + e.msg());
@@ -53,9 +55,11 @@ void ExaTrkXTrackFinding::getTracks(
     // hardcoded debugging information
     c10::InferenceMode guard(true);
     bool debug = true;
+    std::cout << "Test Point 0:  " << device_id << std::endl;
     torch::Device device(torch::kCUDA, device_id);
 
-     // printout the r,phi,z of the first spacepoint
+
+    // printout the r,phi,z of the first spacepoint
     // std::cout <<"First spacepoint information: ";
     // std::copy(inputValues.begin(), inputValues.begin() + 3,
     //           std::ostream_iterator<float>(std::cout, " "));
@@ -76,10 +80,48 @@ void ExaTrkXTrackFinding::getTracks(
         e_opts).to(torch::kFloat32);
 
     eInputTensorJit.push_back(eLibInputTensor.to(device));
+    std::cout <<"Test Point 1:  " << std::endl;
+    if (eInputTensorJit[0].isTensor()) {
+        torch::Tensor tensor = eInputTensorJit[0].toTensor();
+        torch::Device test_tensor_device = tensor.device();
+
+        if (test_tensor_device.is_cpu()) {
+            std::cout << "The tensor is on CPU." << std::endl;
+        } else if (test_tensor_device.is_cuda()) {
+            if (test_tensor_device.has_index()) {
+                std::cout << "The tensor is on GPU: " << static_cast<int>(test_tensor_device.index()) << std::endl;
+            } else {
+                std::cout << "The tensor is on GPU: 0" << std::endl;  // Assuming default GPU index is 0
+            }
+        }
+    } else {
+        // Handle the case where the IValue is not a tensor
+        std::cerr << "The IValue is not a tensor." << std::endl;
+    }
+    // auto parameters = e_model.named_parameters();
+    // if (parameters.size() > 0) {
+    //     auto first_param = parameters.begin();
+    //     auto device = first_param.value().device();
+    //     std::cout << "The e_model is on GPU: " << device.index() << std::endl;
+    // } else {
+    //     std::cout << "The e_model has no parameters." << std::endl;
+    // }
+
+    // check which GPU the e_model is on
+    // auto parameters = e_model.named_parameters();
+    // if (parameters.size() > 0) {
+    //     auto first_param = parameters.begin();
+    //     auto device = first_param.value().device();
+    //     std::cout << "The e_model is on GPU: " << device.index() << std::endl;
+    // } else {
+    //     std::cout << "The e_model has no parameters." << std::endl;
+    // }
+
+    std::cout <<" eOutput = e_model.forward(eInputTensorJit).toTensor() " << std::endl;
     at::Tensor eOutput = e_model.forward(eInputTensorJit).toTensor();
-    // std::cout <<"Embedding space of libtorch the first SP: \n";
-    // std::cout << eOutput.slice(/*dim=*/0, /*start=*/0, /*end=*/1) << std::endl;
-    // std::cout << std::endl;
+    std::cout <<"Embedding space of libtorch the first SP: \n";
+    std::cout << eOutput.slice(/*dim=*/0, /*start=*/0, /*end=*/1) << std::endl;
+    std::cout << std::endl;
 
     timeInfo.embedding = timer.stopAndGetElapsedTime();
 
@@ -88,11 +130,11 @@ void ExaTrkXTrackFinding::getTracks(
     // ************
     timer.start();
     torch::Tensor edgeList = buildEdges(
-        eOutput, numSpacepoints, m_cfg.embeddingDim, m_cfg.rVal, m_cfg.knnVal);
+        eOutput, numSpacepoints, m_cfg.embeddingDim, m_cfg.rVal, m_cfg.knnVal, device_id);
     int64_t numEdges = edgeList.size(1);
 
-    // std::cout << "Built " << edgeList.size(1) << " edges. " <<  edgeList.size(0) << std::endl;
-    // std::cout << edgeList.slice(1, 0, 5) << std::endl;
+    std::cout << "Built " << edgeList.size(1) << " edges. " <<  edgeList.size(0) << std::endl;
+    std::cout << edgeList.slice(1, 0, 5) << std::endl;
 
     timeInfo.building = timer.stopAndGetElapsedTime();
 

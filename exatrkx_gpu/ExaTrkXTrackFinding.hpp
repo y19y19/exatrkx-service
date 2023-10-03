@@ -16,6 +16,8 @@ public:
     struct Config{
         std::string modelDir;
         bool verbose = false;
+        // device id 
+        int32_t device_id = 0;
 
         // hyperparameters in the pipeline.
         int64_t spacepointFeatures = 3;

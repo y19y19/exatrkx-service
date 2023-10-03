@@ -2,10 +2,23 @@
 
 torch::Tensor buildEdges(
     at::Tensor& embedFeatures, int64_t numSpacepoints,
-    int dim, float rVal, int kVal
+    int dim, float rVal, int kVal, int32_t device_id
 )
 {
-    torch::Device device(torch::kCUDA);
+    std::cout <<"Test Point 2:  " << std::endl;
+    torch::Device test_tensor_device = embedFeatures.device();
+
+    if (test_tensor_device.is_cpu()) {
+        std::cout << "The tensor is on CPU." << std::endl;
+    } else if (test_tensor_device.is_cuda()) {
+        if (test_tensor_device.has_index()) {
+            std::cout << "The tensor is on GPU: " << static_cast<int>(test_tensor_device.index()) << std::endl;
+        } else {
+            std::cout << "The tensor is on GPU: 0" << std::endl;  // Assuming default GPU index is 0
+        }
+    }
+
+    torch::Device device(torch::kCUDA, device_id);
     auto options = torch::TensorOptions().dtype(torch::kFloat32).device(torch::kCUDA);
 
     int grid_params_size;
