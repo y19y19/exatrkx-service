@@ -479,7 +479,10 @@ class ModelInstanceState : public BackendModelInstance {
   // Get the state of the model that corresponds to this instance.
   ModelState* StateForModel() const { return model_state_; }
 
- private:
+  std::unique_ptr<ExaTrkXTrackFinding> infer;
+  ExaTrkXTrackFinding::Config config;
+
+private:
   ModelInstanceState(
       ModelState* model_state,
       TRITONBACKEND_ModelInstance* triton_model_instance)
@@ -533,6 +536,20 @@ TRITONBACKEND_ModelInstanceInitialize(TRITONBACKEND_ModelInstance* instance)
       ModelInstanceState::Create(model_state, instance, &instance_state));
   RETURN_IF_ERROR(TRITONBACKEND_ModelInstanceSetState(
       instance, reinterpret_cast<void*>(instance_state)));
+  // Load model here
+
+  // Get the model name, device id and the kind of model instance. 
+  const char* cname;
+  RETURN_IF_ERROR(TRITONBACKEND_ModelInstanceName(instance, &cname));
+  std::string name(cname);
+  int32_t device_id;
+  RETURN_IF_ERROR(TRITONBACKEND_ModelInstanceDeviceId(instance, &device_id));
+  TRITONSERVER_InstanceGroupKind kind;
+  RETURN_IF_ERROR(TRITONBACKEND_ModelInstanceKind(instance, &kind));
+
+  instance_state->config = ExaTrkXTrackFinding::Config{model_state->model_path, model_state->model_verbose, device_id=device_id};
+  // ExaTrkXTimeList tot_time;
+  instance_state->infer = std::make_unique<ExaTrkXTrackFinding>(instance_state->config);
 
   return nullptr; // success
 }
@@ -569,21 +586,12 @@ TRITONBACKEND_ModelInstanceExecute(
     TRITONBACKEND_ModelInstance* instance, TRITONBACKEND_Request** requests,
     const uint32_t request_count)
 {
-  // Get the model name, device id and the kind of model instance. 
-  const char* cname;
-  RETURN_IF_ERROR(TRITONBACKEND_ModelInstanceName(instance, &cname));
-  std::string name(cname);
-  int32_t device_id;
-  RETURN_IF_ERROR(TRITONBACKEND_ModelInstanceDeviceId(instance, &device_id));
-  TRITONSERVER_InstanceGroupKind kind;
-  RETURN_IF_ERROR(TRITONBACKEND_ModelInstanceKind(instance, &kind));
-
-  LOG_MESSAGE(
-      TRITONSERVER_LOG_INFO,
-      (std::string("Model Instance: ") + name + " (" +
-       TRITONSERVER_InstanceGroupKindString(kind) + " device " +
-       std::to_string(device_id) + ")")
-          .c_str());
+  // LOG_MESSAGE(
+  //     TRITONSERVER_LOG_INFO,
+  //     (std::string("Model Instance: ") + name + " (" +
+  //      TRITONSERVER_InstanceGroupKindString(kind) + " device " +
+  //      std::to_string(device_id) + ")")
+  //         .c_str());
 
   // Collect various timestamps during the execution of this batch or
   // requests. These values are reported below before returning from
@@ -710,20 +718,20 @@ TRITONBACKEND_ModelInstanceExecute(
   uint64_t compute_start_ns = 0;
   SET_TIMESTAMP(compute_start_ns);
 
-  LOG_MESSAGE(
-      TRITONSERVER_LOG_VERBOSE,
-      (std::string("model ") + model_state->Name() + ": requests in batch " +
-       std::to_string(request_count))
-          .c_str());
+  // LOG_MESSAGE(
+  //     TRITONSERVER_LOG_VERBOSE,
+  //     (std::string("model ") + model_state->Name() + ": requests in batch " +
+  //      std::to_string(request_count))
+  //         .c_str());
   std::string tstr;
   IGNORE_ERROR(BufferAsTypedString(
       tstr, input_buffer, input_buffer_byte_size,
       model_state->InputTensorDataType()));
-  LOG_MESSAGE(
-      TRITONSERVER_LOG_VERBOSE,
-      (std::string("batched " + model_state->InputTensorName() + " value: ") +
-       tstr)
-          .c_str());
+  // LOG_MESSAGE(
+  //     TRITONSERVER_LOG_VERBOSE,
+  //     (std::string("batched " + model_state->InputTensorName() + " value: ") +
+  //      tstr)
+  //         .c_str());
 
   // ExaTrkX-GPU Main parts here
 
@@ -738,12 +746,6 @@ TRITONBACKEND_ModelInstanceExecute(
   std::vector<int64_t> input_tensor_shape;
   input_tensor_shape.push_back(input_tensor_values.size());
   model_state->SetInputTensorShape(input_tensor_shape);
-
-  std::unique_ptr<ExaTrkXTrackFinding> infer;
-
-  ExaTrkXTrackFinding::Config config{model_state->model_path, model_state->model_verbose, device_id=device_id};
-  ExaTrkXTimeList tot_time;
-  infer = std::make_unique<ExaTrkXTrackFinding>(config);
 
   int tot_tracks = 0;
   int numSpacepoints = input_tensor_values.size() / model_state->spacepointFeatures;
@@ -760,8 +762,8 @@ TRITONBACKEND_ModelInstanceExecute(
 
   std::vector<std::vector<int>> track_candidates;
   ExaTrkXTime time;
-  infer->getTracks(input_tensor_values, spacepoint_ids, track_candidates, time, device_id);
-  tot_time.add(time);
+  instance_state->infer->getTracks(input_tensor_values, spacepoint_ids, track_candidates, time, instance_state->config.device_id);
+  // tot_time.add(time);
   tot_tracks += track_candidates.size();
   // print out the track candidates
   // dumpTrackCandidate(track_candidates);
