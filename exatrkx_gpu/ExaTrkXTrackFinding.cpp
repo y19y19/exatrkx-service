@@ -55,7 +55,7 @@ void ExaTrkXTrackFinding::getTracks(
     c10::InferenceMode guard(true);
     bool debug = true;
     torch::Device device(torch::kCUDA, device_id);
-
+    at::cuda::CUDAGuard device_guard(device_id);
 
     // printout the r,phi,z of the first spacepoint
     // std::cout <<"First spacepoint information: ";
