@@ -109,39 +109,76 @@ int main(int argc, char* argv[])
     
     const fs::path filepath(input_file_path);
     std::error_code ec;
-    
-    // read spacepoints table saved in csv
-    std::vector<float> input_tensor_values;
-    processInput(input_file_path, input_tensor_values);
+
+    // input containers
+    std::vector<std::vector<float> > input_tensor_values;
+    std::vector<std::vector<int> > spacepoint_ids;
     int64_t spacepointFeatures = 3;
 
-    int numSpacepoints = input_tensor_values.size()/spacepointFeatures;
+    if (fs::is_directory(filepath, ec)) {
+        // read all files in the directory
+        // and save the spacepoints in a vector
+        for (const auto& entry : fs::directory_iterator(filepath)) {
+            if (entry.path().extension() == ".csv") {
+                std::vector<float> input_tensor_values_temp;
+                processInput(entry.path().string(), input_tensor_values_temp);
+                input_tensor_values.push_back(input_tensor_values_temp);
 
-    std::vector<int> spacepoint_ids;
-    for (int i=0; i < numSpacepoints; ++i){
-        spacepoint_ids.push_back(i);
+
+                int numSpacepoints = input_tensor_values_temp.size()/spacepointFeatures;
+
+                std::vector<int> spacepoint_ids_temp;
+                for (int i=0; i < numSpacepoints; ++i){
+                    spacepoint_ids_temp.push_back(i);
+                }
+                spacepoint_ids.push_back(spacepoint_ids_temp);
+            }
+        }
+    } else if (fs::is_regular_file(filepath, ec)) {
+        // read spacepoints table saved in csv
+        std::vector<float> input_tensor_values_temp;
+        processInput(input_file_path, input_tensor_values_temp);
+        input_tensor_values.push_back(input_tensor_values_temp);
+
+        int numSpacepoints = input_tensor_values_temp.size()/spacepointFeatures;
+
+        std::vector<int> spacepoint_ids_temp;
+        for (int i=0; i < numSpacepoints; ++i){
+            spacepoint_ids_temp.push_back(i);
+        }
+        spacepoint_ids.push_back(spacepoint_ids_temp);
+    }
+
+    if (input_tensor_values.size() == 0) {
+        std::cerr << "No input files found in " << input_file_path << std::endl;
+        exit(EXIT_FAILURE);
     }
 
     // warmup the inferences
-    std::vector<std::vector<int> > track_candidates;
     for (int i=0; i < 10; ++i){
         ExaTrkXTime time;
-        infer->getTracks(input_tensor_values, spacepoint_ids, track_candidates, time);
+        std::vector<std::vector<int> > track_candidates;
+        infer->getTracks(input_tensor_values[0], spacepoint_ids[0], track_candidates, time);
     }
 
     // add a mutex to protect the following two variables
     int tot_evts = 0;
     std::mutex tot_evts_mutex;
-    
+    int tot_available_evts = input_tensor_values.size();
+    std::cout << "Total number of available events: " << tot_available_evts << std::endl;
+
     auto run_one_file = [&](void) -> void {
         // measure the throughput
         auto start = std::chrono::high_resolution_clock::now();
         auto end = std::chrono::high_resolution_clock::now();
         int niter = 0;
-        while((end - start) < std::chrono::seconds(10)){
+        while((end - start) < std::chrono::seconds(120)){
             std::vector<std::vector<int> > temp_candidates;
             ExaTrkXTime time;
-            infer->getTracks(input_tensor_values, spacepoint_ids, temp_candidates, time);
+            int idx = niter % tot_available_evts;
+            infer->getTracks(input_tensor_values[idx], 
+                             spacepoint_ids[idx], 
+                             temp_candidates, time);
             ++niter;
             end = std::chrono::high_resolution_clock::now();
         }
@@ -149,13 +186,13 @@ int main(int argc, char* argv[])
         std::lock_guard<std::mutex> guard(tot_evts_mutex);
         tot_evts += niter;
 
-        // get thread id
-        std::stringstream ss;
-        ss << std::this_thread::get_id();
-        std::string thread_id = ss.str();
+        // // get thread id
+        // std::stringstream ss;
+        // ss << std::this_thread::get_id();
+        // std::string thread_id = ss.str();
 
-        std::cout << "Thread: " << thread_id << " achieved throughput: " << niter / infer_time << " events per second." << std::endl;
-        std::cout << "\t(" << niter << " " << infer_time << ")" << std::endl;
+        // std::cout << "Thread: " << thread_id << " achieved throughput: " << niter / infer_time << " events per second." << std::endl;
+        // std::cout << "\t(" << niter << " " << infer_time << ")" << std::endl;
     };
 
     auto loop_start_time = std::chrono::high_resolution_clock::now();
