@@ -1,5 +1,10 @@
 examples/
 more/
+slurm*
+dev_*
+
+*.png 
+*.csv
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
