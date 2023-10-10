@@ -5,9 +5,9 @@ torch::Tensor buildEdges(
     int dim, float rVal, int kVal, int32_t device_id
 )
 {
+    at::cuda::CUDAGuard device_guard(device_id);
     torch::Device device(torch::kCUDA, device_id);
     auto options = torch::TensorOptions().dtype(torch::kFloat32).device(torch::kCUDA, device_id);
-    at::cuda::CUDAGuard device_guard(device_id);
 
     int grid_params_size;
     int grid_delta_idx;

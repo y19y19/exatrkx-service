@@ -175,19 +175,6 @@ class ModelState : public BackendModel {
   const std::vector<int64_t>& InputTensorNonBatchShape() const { return input_nb_shape_; }
   const std::vector<int64_t>& OutputTensorNonBatchShape() const { return output_nb_shape_; }
 
-  // Shape of the input and output tensor, including the batch
-  // dimension (if the model has one). This method cannot be called
-  // until the model is completely loaded and initialized, including
-  // all instances of the model. In practice, this means that backend
-  // should only call it in TRITONBACKEND_ModelInstanceExecute.
-  TRITONSERVER_Error* InputTensorShape(std::vector<int64_t>& shape);
-  TRITONSERVER_Error* OutputTensorShape(std::vector<int64_t>& shape);
-
-  // Set the shape of the input tensor. This method should be called
-  TRITONSERVER_Error* SetInputTensorShape(const std::vector<int64_t>& input_shape);
-  // Set the shape of the output tensor. This method should be called
-  TRITONSERVER_Error* SetOutputTensorShape(const std::vector<int64_t>& output_shape);
-
   // Validate that this model is supported by this backend.
   TRITONSERVER_Error* ValidateModelConfig();
 
@@ -205,8 +192,6 @@ class ModelState : public BackendModel {
   TRITONSERVER_DataType input_datatype_;
   TRITONSERVER_DataType output_datatype_;
 
-  bool input_shape_initialized_ = false;
-  bool output_shape_initialized_ = false;
 
   std::vector<int64_t> input_nb_shape_;
   std::vector<int64_t> input_shape_;
@@ -216,8 +201,7 @@ class ModelState : public BackendModel {
 
 ModelState::ModelState(TRITONBACKEND_Model *triton_model)
     : BackendModel(triton_model),
-      model_path("/workspace/exatrkx_pipeline/datanmodels/"), spacepointFeatures(3), model_verbose(false),
-      input_shape_initialized_(false), output_shape_initialized_(false)
+      model_path("/workspace/exatrkx_pipeline/datanmodels/"), spacepointFeatures(3), model_verbose(false)
 {
   // Validate that the model's configuration matches what is supported
   // by this backend.
@@ -278,61 +262,6 @@ ModelState::Create(TRITONBACKEND_Model* triton_model, ModelState** state)
 }
 
 TRITONSERVER_Error*
-ModelState::OutputTensorShape(std::vector<int64_t>& output_shape)
-{
-  // This backend supports models that batch along the first dimension
-  // and those that don't batch. For non-batch models the output shape
-  // will be the shape from the model configuration. For batch models
-  // the output shape will be the shape from the model configuration
-  // prepended with [ -1 ] to represent the batch dimension. The
-  // backend "responder" utility used below will set the appropriate
-  // batch dimension value for each response. The shape needs to be
-  // initialized lazily because the SupportsFirstDimBatching function
-  // cannot be used until the model is completely loaded.
-  if (!input_shape_initialized_) {
-    bool supports_first_dim_batching;
-    RETURN_IF_ERROR(SupportsFirstDimBatching(&supports_first_dim_batching));
-    if (supports_first_dim_batching) {
-      output_shape_.push_back(-1);
-    }
-
-    output_shape_.insert(output_shape_.end(), output_nb_shape_.begin(), output_nb_shape_.end());
-    output_shape_initialized_ = true;
-  }
-
-  output_shape = output_shape_;
-
-
-  return nullptr;  // success
-}
-
-TRITONSERVER_Error*
-ModelState::SetInputTensorShape(const std::vector<int64_t>& input_shape)
-{
-  // Copy the provided shape to the internal variable
-  // to overwrite what is read from the model configuration
-  // for exatrkx, the the values is -1 
-  input_nb_shape_ = input_shape;
-
-  return nullptr;  // success
-}
-
-TRITONSERVER_Error*
-ModelState::SetOutputTensorShape(const std::vector<int64_t>& output_shape)
-{
-  // Reset the shape initialized flag so that the shape will be
-  // recalculated the next time OutputTensorShape() is called.
-  output_shape_initialized_ = false;
-  output_shape_.clear();
-  output_nb_shape_.clear();
-
-  // Copy the provided shape to the internal variable
-  output_nb_shape_ = output_shape;
-
-  return nullptr;  // success
-}
-
-TRITONSERVER_Error*
 ModelState::ValidateModelConfig()
 {
   // If verbose logging is enabled, dump the model's configuration as
@@ -382,10 +311,6 @@ ModelState::ValidateModelConfig()
   RETURN_IF_ERROR(output.MemberAsString("data_type", &output_dtype));
 
   // input 1-d float array, output 1-d int array
-  // RETURN_ERROR_IF_FALSE(
-  //     input_dtype == output_dtype, TRITONSERVER_ERROR_INVALID_ARG,
-  //     std::string("expected input and output datatype to match, got ") +
-  //         input_dtype + " and " + output_dtype);
   input_datatype_ = ModelConfigDataTypeToTritonServerDataType(input_dtype);
   output_datatype_ = ModelConfigDataTypeToTritonServerDataType(output_dtype);
 
@@ -403,12 +328,6 @@ ModelState::ValidateModelConfig()
   std::vector<int64_t> input_shape, output_shape;
   RETURN_IF_ERROR(backend::ParseShape(input, "dims", &input_shape));
   RETURN_IF_ERROR(backend::ParseShape(output, "dims", &output_shape));
-
-  // RETURN_ERROR_IF_FALSE(
-  //     input_shape == output_shape, TRITONSERVER_ERROR_INVALID_ARG,
-  //     std::string("expected input and output shape to match, got ") +
-  //         backend::ShapeToString(input_shape) + " and " +
-  //         backend::ShapeToString(output_shape));
 
   input_nb_shape_ = input_shape;
   output_nb_shape_ = output_shape;
@@ -706,60 +625,31 @@ TRITONBACKEND_ModelInstanceExecute(
   if (need_cuda_input_sync) {
     LOG_MESSAGE(
         TRITONSERVER_LOG_ERROR,
-        "'recommended' backend: unexpected CUDA sync required by collector");
+        "'exatrkxgpu' backend: unexpected CUDA sync required by collector");
   }
-
-  // 'input_buffer' contains the batched input tensor. The backend can
-  // implement whatever logic is necessary to produce the output
-  // tensor. This backend simply logs the input tensor value and then
-  // returns the input tensor value in the output tensor so no actual
-  // computation is needed.
 
   uint64_t compute_start_ns = 0;
   SET_TIMESTAMP(compute_start_ns);
 
-  // LOG_MESSAGE(
-  //     TRITONSERVER_LOG_VERBOSE,
-  //     (std::string("model ") + model_state->Name() + ": requests in batch " +
-  //      std::to_string(request_count))
-  //         .c_str());
-  std::string tstr;
-  IGNORE_ERROR(BufferAsTypedString(
-      tstr, input_buffer, input_buffer_byte_size,
-      model_state->InputTensorDataType()));
-  // LOG_MESSAGE(
-  //     TRITONSERVER_LOG_VERBOSE,
-  //     (std::string("batched " + model_state->InputTensorName() + " value: ") +
-  //      tstr)
-  //         .c_str());
-
-  // ExaTrkX-GPU Main parts here
-
+  // I/O from triton memory, convert to float 
   // Assuming input_buffer_byte_size is a multiple of sizeof(float), i.e., the buffer's size in bytes is correctly representing a sequence of floats
-  size_t num_floats = input_buffer_byte_size / sizeof(float);
+  size_t num_floats = input_buffer_byte_size / sizeof(model_state->InputTensorDataType());
   // Cast the input buffer to a float pointer
   const float* float_ptr = reinterpret_cast<const float*>(input_buffer);
   // Create a vector from the float buffer
   std::vector<float> input_tensor_values(float_ptr, float_ptr + num_floats);
 
-  // size of the input 
-  std::vector<int64_t> input_tensor_shape;
-  input_tensor_shape.push_back(input_tensor_values.size());
-  model_state->SetInputTensorShape(input_tensor_shape);
-
+  // ExaTrkX-GPU Main parts here
+  // Prepare the input for ExaTrkX 
   int tot_tracks = 0;
   int numSpacepoints = input_tensor_values.size() / model_state->spacepointFeatures;
-  // LOG_MESSAGE(
-  //     TRITONSERVER_LOG_VERBOSE,
-  //     (std::string("model ") + model_state->Name() + ": numSpacepoints " +
-  //      std::to_string(numSpacepoints))
-  //         .c_str());
 
   std::vector<int> spacepoint_ids;
   for (int i = 0; i < numSpacepoints; ++i) {
         spacepoint_ids.push_back(i);
-    }
+  }
 
+  // Perform the inference 
   std::vector<std::vector<int>> track_candidates;
   ExaTrkXTime time;
   instance_state->infer->getTracks(input_tensor_values, spacepoint_ids, track_candidates, time, instance_state->config.device_id);
@@ -768,6 +658,8 @@ TRITONBACKEND_ModelInstanceExecute(
   // print out the track candidates
   // dumpTrackCandidate(track_candidates);
 
+  // Prepare the output. Originally it's a vector of vector of int, which is converted to a vector of int
+  // Spacepoints IDs are the indices of the output vector, and the value is the track candidate ID 
   std::vector<int64_t> output_data(numSpacepoints, -1); // Initialized all to -1
   for (int64_t i = 0; i < static_cast<int64_t>(track_candidates.size()); ++i) {
     for (int64_t Spacepoint_idx : track_candidates[i]) {
@@ -777,8 +669,7 @@ TRITONBACKEND_ModelInstanceExecute(
     }
   }
 
-  // test
-  // auto output_data = input_tensor_values; 
+  // Prepare the output buffer, which is a vector of int64_t
   const char *output_buffer = reinterpret_cast<const char *>(output_data.data());
   TRITONSERVER_MemoryType output_buffer_memory_type = input_buffer_memory_type;
   int64_t output_buffer_memory_type_id = input_buffer_memory_type_id;
@@ -793,11 +684,7 @@ TRITONBACKEND_ModelInstanceExecute(
 
   std::vector<int64_t> output_tensor_shape;
   output_tensor_shape.push_back(static_cast<int64_t>(output_data.size()));
-  model_state->SetOutputTensorShape(output_tensor_shape);
 
-
-  RESPOND_ALL_AND_SET_NULL_IF_ERROR(
-      responses, request_count, model_state->OutputTensorShape(output_tensor_shape));
 
   // Because the output tensor values are concatenated into a single
   // contiguous 'output_buffer', the backend must "scatter" them out
@@ -830,7 +717,7 @@ TRITONBACKEND_ModelInstanceExecute(
   if (need_cuda_output_sync) {
     LOG_MESSAGE(
         TRITONSERVER_LOG_ERROR,
-        "'recommended' backend: unexpected CUDA sync required by responder");
+        "'exatrkxgpu' backend: unexpected CUDA sync required by responder");
   }
 
   // Send all the responses that haven't already been sent because of
@@ -913,4 +800,4 @@ TRITONBACKEND_ModelInstanceExecute(
 
 }  // extern "C"
 
-}}}  // namespace triton::backend::recommended
+}}}  // namespace triton::backend::exatrkxgpu

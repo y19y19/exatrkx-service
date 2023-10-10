@@ -27,6 +27,7 @@ void ExaTrkXTrackFinding::initTrainedModels(){
     std::string l_gnnModelPath(m_cfg.modelDir + "/torchscript/gnn.pt");
     c10::InferenceMode guard(true);
     try {
+        at::cuda::CUDAGuard device_guard(m_cfg.device_id);
         torch::Device device(torch::kCUDA, m_cfg.device_id);
         e_model = torch::jit::load(l_embedModelPath.c_str(), device);
         e_model.eval();
@@ -54,8 +55,8 @@ void ExaTrkXTrackFinding::getTracks(
     // hardcoded debugging information
     c10::InferenceMode guard(true);
     bool debug = true;
-    torch::Device device(torch::kCUDA, device_id);
     at::cuda::CUDAGuard device_guard(device_id);
+    torch::Device device(torch::kCUDA, device_id);
 
     // printout the r,phi,z of the first spacepoint
     // std::cout <<"First spacepoint information: ";
