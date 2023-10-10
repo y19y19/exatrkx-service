@@ -63,3 +63,10 @@ file(GLOB HeaderFiles *.hpp)
 install(FILES ${HeaderFiles}
   DESTINATION include/exatrkxcpu
 )
+
+add_executable(inference-cpu-throughput inference-cpu-throughput.cpp)
+target_link_libraries(inference-cpu-throughput PUBLIC tbb ExaTrkXCPU)
+set_target_properties(inference-cpu-throughput
+PROPERTIES  CXX_STANDARD                        17
+            CXX_STANDARD_REQUIRED               ON
+)
