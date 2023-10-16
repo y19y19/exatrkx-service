@@ -36,7 +36,8 @@ output_dir=$output_dir/${n_instance_per_gpu}insts_${n_gpus}gpus/ # aviod conflic
 
 mkdir -p $output_dir/exatrkxgpu_model_repo/
 cp -r /opt/model_repos/exatrkxgpu/ $output_dir/exatrkxgpu_model_repo/
-sed -i "s/count: 2/count: ${n_instance_per_gpu}/" $output_dir/exatrkxgpu_model_repo/exatrkxgpu/config.pbtxt
+# sed -i "s/count: 2/count: ${n_instance_per_gpu}/" $output_dir/exatrkxgpu_model_repo/exatrkxgpu/config.pbtxt
+sed -i "s/count: 1/count: ${n_instance_per_gpu}/" $output_dir/exatrkxgpu_model_repo/exatrkxgpu/config.pbtxt
 
 check_server_ready() {
     local max_retries=10
