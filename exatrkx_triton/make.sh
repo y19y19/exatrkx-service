@@ -9,3 +9,4 @@ fi
 cmake -S . -B build -DCMAKE_PREFIX_PATH="/usr/local/lib/cmake/TritonCommon"
 
 cmake --build build --target inference-aas -- $BUILD_ARGS
+cmake --build build --target install -- $BUILD_ARGS

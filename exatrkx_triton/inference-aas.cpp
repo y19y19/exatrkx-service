@@ -68,8 +68,13 @@ std::string get_selfpath() {
       std::string bin_path = buff;
 
       int pos_to_erase = bin_path.find("build/bin/inference");
-      std::string folder_path = bin_path.erase(pos_to_erase, 19);
-      return folder_path;
+      if (pos_to_erase != std::string::npos) {
+        std::string folder_path = bin_path.erase(pos_to_erase, 19);
+        return folder_path;
+      } else {
+        /* handle error condition */
+        return "";
+      }
     } else {
         /* handle error condition */
         return "";

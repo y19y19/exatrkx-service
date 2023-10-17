@@ -65,8 +65,9 @@ int main(int argc, char* argv[])
     bool verbose = false;
     int nthreads = 1;
     std::string model_path("datanmodels");
+    int32_t device_id = 0;
 
-    while ((opt = getopt(argc, argv, "vht:d:m:")) != -1) {
+    while ((opt = getopt(argc, argv, "vht:d:m:i:")) != -1) {
         switch (opt) {
             case 'd':
                 input_file_path = optarg;
@@ -80,6 +81,9 @@ int main(int argc, char* argv[])
             case 'm':
                 model_path = optarg;
                 break;
+            case 'i':
+                device_id = atoi(optarg);
+                break;
             case 'h':
                 help = true;
             default:
@@ -89,6 +93,7 @@ int main(int argc, char* argv[])
                     std::cerr << " -t: number of threads" << std::endl;
                     std::cerr << " -v: verbose" << std::endl;
                     std::cerr << " -m: model path" << std::endl;
+                    std::cerr << " -i: device id" << std::endl;
                 }
             exit(EXIT_FAILURE);
         }
@@ -101,7 +106,7 @@ int main(int argc, char* argv[])
     
 
     std::unique_ptr<ExaTrkXTrackFinding> infer;
-    ExaTrkXTrackFinding::Config config{model_path, verbose};
+    ExaTrkXTrackFinding::Config config{model_path, verbose, device_id};
     infer = std::make_unique<ExaTrkXTrackFinding>(config);
 
     std::cout << "Running Inference with local GPUs" << std::endl;
@@ -126,7 +131,7 @@ int main(int argc, char* argv[])
         }
         std::vector<std::vector<int> > track_candidates;
         ExaTrkXTime time;
-        infer->getTracks(input_tensor_values, spacepoint_ids, track_candidates, time);
+        infer->getTracks(input_tensor_values, spacepoint_ids, track_candidates, time, device_id);
         tot_time.add(time);
         tot_tracks += track_candidates.size();
 
