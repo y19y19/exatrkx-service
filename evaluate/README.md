@@ -29,6 +29,7 @@ python evaluate_time.py
 # if you want to use more events(5000), use the following command
 # python evaluate_time.py --use-more 
 
+# The CTD2023 result is obtained by using the following command 
 # use perf_analyzer to measure the time
 # first convert the 100 events into a json file 
 python convert_csv2json.py --input /workspace/exatrkx_pipeline/datanmodels/lrt/inputs 
@@ -42,11 +43,17 @@ srun scripts/evaluate_triton.sh
 # need to check the account and output_dir in the slurm_1gpu.sub file 
 sbatch slurm/slurm_1gpu.sub 
 
+# Then run the ipython notebook to plot the results
+# evaluate/plotting/plot_1GPU.ipynb
 ```
+## CTD results 
+[throughput_vs_concurency](plotting/throughput_vs_concurrency_1inst_1gpu.pdf)
+
+[avg_thgoughput_vs_instance](plotting/avg_throughput_vs_instances_1gpu.pdf)
+
 
 ## Example results 
 The following results are obtained on a nersc compute node with 1 GPU. The time measurement is by using the shell command `time` and the `real time` is used to compare.    
 ![GPU direct inference](results_inference_gpu_direct.png)
 ![GPU triton inference](results_inference_gpu_triton.png)
 ![GPU direct vs. triton](gpu_comparison.png)
-
