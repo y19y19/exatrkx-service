@@ -80,7 +80,10 @@ install(FILES ${HeaderFiles}
   DESTINATION include/exatrkxgpu
 )
 
-install(
-  TARGETS inference-gpu
-  DESTINATION bin
+add_executable(inference-gpu-throughput inference-gpu-throughput.cpp)
+target_link_libraries(inference-gpu-throughput PUBLIC tbb ExaTrkXGPU)
+target_compile_definitions(inference-gpu-throughput PUBLIC CUDA_API_PER_THREAD_DEFAULT_STREAM)
+set_target_properties(inference-gpu-throughput
+PROPERTIES  CXX_STANDARD                        17
+            CXX_STANDARD_REQUIRED               ON
 )
