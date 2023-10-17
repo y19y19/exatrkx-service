@@ -9,6 +9,7 @@ from pathlib import Path
 import pandas as pd 
 import matplotlib.pyplot as plt
 import numpy as np 
+import re
 
 from typing import Union
 
@@ -27,10 +28,26 @@ def check_outputpath(output_path: Union[str, Path]) -> Path:
         output_path.mkdir(parents=True, exist_ok=True)
     return output_path
 
+def extract_numbers_GPU(row: str):
+    numbers = re.findall(r"(?<=:)\d+\.\d+|(?<=:)\d+", row)
+    if len(numbers) > 0:
+        numbers = np.array(numbers, dtype=float)
+        return numbers
+    else: 
+        return None
+
 def read_perf_analyzer_output(csv_file: Union[str, Path]) -> pd.DataFrame:
     csv_file = check_inputpath(csv_file)
     df_csv = pd.read_csv(csv_file)
     df_csv.sort_values(by=['Concurrency'], inplace=True)
+    df_csv.index = df_csv['Concurrency']
+
+    # change the ave GPU utilization to float 
+    for column in df_csv.columns:
+        if not "GPU" in column:
+            continue
+
+        df_csv[column] = df_csv[column].apply(extract_numbers_GPU)
 
     return df_csv 
 
@@ -77,7 +94,7 @@ def plot_backend(backend_type: str, backend_results_path: Union[str, Path],
 
         ax.set_xlabel("Concurrency")
         ax.set_ylabel("Throughput [events/sec]")
-        ax.set_title(f"GPU based custom backend, tested w/ 1 GPU")
+        ax.set_title(f"GPU custom backend, {sync_mode} mode")
 
         ax.legend()
 
@@ -144,3 +161,56 @@ def plot_backend_compare(custom_backend_results: Union[str, Path], ensemble_back
         fig_all.savefig(output_path / f"perf_vs_concurrency_all_{sync_mode}.png", dpi=300)
 
         
+def exatract_throughput_vs_instances(backend_results_path, pattern = r'(\d+)insts', sync_mode = "sync", var_name = "Inferences/Second", n_instance_threshold = 10):
+    backend_results = {
+        "n_instances": [],
+        "Throughput_mean": [],
+        "Throughput_std": [], 
+        "GPU Utilization": [],
+    }
+
+    different_ins_results_path = sorted([item for item in backend_results_path.iterdir() if item.is_dir()])
+    for instance_result_path in different_ins_results_path:
+        
+        match = re.search(pattern, instance_result_path.stem)
+        if match:
+            n_instance = int(match.group(1)) 
+        else:
+            raise ValueError("No instance number found in the path.") 
+
+        backend_results["n_instances"].append(n_instance)
+        csv_file_pattern = f"*_{sync_mode}.csv"
+        csv_file = sorted(instance_result_path.glob(csv_file_pattern))[0]
+
+        pd_csv = read_perf_analyzer_output(csv_file)
+
+        pd_saturated = pd_csv.query(f"Concurrency >= {n_instance_threshold}")
+        backend_results["Throughput_mean"].append(pd_saturated[var_name].mean())
+        backend_results["Throughput_std"].append(pd_saturated[var_name].std())
+        
+        gpu_util = pd_saturated['Avg GPU Utilization'].apply(extract_numbers_GPU).mean()
+        backend_results["GPU Utilization"].append(gpu_util)
+
+    return backend_results
+
+
+timing_items = ['Client Send', 'Network+Server Send/Recv', 'Server Queue', 'Server Compute Input', 'Server Compute Infer', 'Server Compute Output', 'Client Recv']
+
+def plot_timing_breakout(df: pd.DataFrame, timing_items: list = timing_items, fig = None, ax = None):
+    df = df.copy()
+    df['total'] = df[timing_items].sum(axis=1)
+
+    # draw a stacked bar plot of the total time
+    if fig is None and ax is None:
+        fig, ax = plt.subplots(figsize=(10, 6))
+        
+    bottom = np.zeros(len(df))
+    for timing_item in timing_items:
+        ax.bar(df['Concurrency'], df[timing_item], bottom=bottom, label=timing_item)
+        bottom += df[timing_item]
+    ax.scatter(df.index, df['total'], marker='x', color='black', label='Total')    
+
+    ax.set_ylabel('Time (usec)')
+    ax.legend()
+
+    return fig, ax
