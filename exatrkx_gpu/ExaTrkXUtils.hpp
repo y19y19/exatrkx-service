@@ -17,7 +17,7 @@ using namespace torch::indexing;
 
 torch::Tensor buildEdges(
     at::Tensor& embedFeatures, int64_t numSpacepoints,
-    int dim, float rVal, int kVal
+    int dim, float rVal, int kVal, int32_t device_id=0
 );
 
 template <typename vertex_t, typename edge_t, typename weight_t>

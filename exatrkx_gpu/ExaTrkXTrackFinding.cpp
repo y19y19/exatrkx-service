@@ -27,11 +27,13 @@ void ExaTrkXTrackFinding::initTrainedModels(){
     std::string l_gnnModelPath(m_cfg.modelDir + "/torchscript/gnn.pt");
     c10::InferenceMode guard(true);
     try {
-        e_model = torch::jit::load(l_embedModelPath.c_str());
+        at::cuda::CUDAGuard device_guard(m_cfg.device_id);
+        torch::Device device(torch::kCUDA, m_cfg.device_id);
+        e_model = torch::jit::load(l_embedModelPath.c_str(), device);
         e_model.eval();
-        f_model = torch::jit::load(l_filterModelPath.c_str());
+        f_model = torch::jit::load(l_filterModelPath.c_str(), device);
         f_model.eval();
-        g_model = torch::jit::load(l_gnnModelPath.c_str());
+        g_model = torch::jit::load(l_gnnModelPath.c_str(), device);
         g_model.eval();
     } catch (const c10::Error& e) {
         throw std::invalid_argument("Failed to load models: " + e.msg());
@@ -45,16 +47,18 @@ void ExaTrkXTrackFinding::getTracks(
     std::vector<float>& inputValues,
     std::vector<int>& spacepointIDs,
     std::vector<std::vector<int> >& trackCandidates,
-    ExaTrkXTime& timeInfo) const {
+    ExaTrkXTime& timeInfo,
+    int32_t device_id) const {
 
     ExaTrkXTimer tot_timer;
     tot_timer.start();
     // hardcoded debugging information
     c10::InferenceMode guard(true);
     bool debug = true;
-    torch::Device device(torch::kCUDA);
+    at::cuda::CUDAGuard device_guard(device_id);
+    torch::Device device(torch::kCUDA, device_id);
 
-     // printout the r,phi,z of the first spacepoint
+    // printout the r,phi,z of the first spacepoint
     // std::cout <<"First spacepoint information: ";
     // std::copy(inputValues.begin(), inputValues.begin() + 3,
     //           std::ostream_iterator<float>(std::cout, " "));
@@ -75,6 +79,7 @@ void ExaTrkXTrackFinding::getTracks(
         e_opts).to(torch::kFloat32);
 
     eInputTensorJit.push_back(eLibInputTensor.to(device));
+
     at::Tensor eOutput = e_model.forward(eInputTensorJit).toTensor();
     // std::cout <<"Embedding space of libtorch the first SP: \n";
     // std::cout << eOutput.slice(/*dim=*/0, /*start=*/0, /*end=*/1) << std::endl;
@@ -87,7 +92,7 @@ void ExaTrkXTrackFinding::getTracks(
     // ************
     timer.start();
     torch::Tensor edgeList = buildEdges(
-        eOutput, numSpacepoints, m_cfg.embeddingDim, m_cfg.rVal, m_cfg.knnVal);
+        eOutput, numSpacepoints, m_cfg.embeddingDim, m_cfg.rVal, m_cfg.knnVal, device_id);
     int64_t numEdges = edgeList.size(1);
 
     // std::cout << "Built " << edgeList.size(1) << " edges. " <<  edgeList.size(0) << std::endl;

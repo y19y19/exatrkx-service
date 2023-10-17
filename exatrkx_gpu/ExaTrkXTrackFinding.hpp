@@ -16,6 +16,8 @@ public:
     struct Config{
         std::string modelDir;
         bool verbose = false;
+        // device id 
+        int32_t device_id = 0;
 
         // hyperparameters in the pipeline.
         int64_t spacepointFeatures = 3;
@@ -33,7 +35,8 @@ public:
         std::vector<float>& inputValues,
         std::vector<int>& spacepointIDs,
         std::vector<std::vector<int> >& trackCandidates,
-        ExaTrkXTime& timeInfo) const;
+        ExaTrkXTime& timeInfo, 
+        int32_t device_id=0) const;
 
     const Config& config() const { return m_cfg; }
 

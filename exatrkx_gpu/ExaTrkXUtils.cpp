@@ -2,11 +2,12 @@
 
 torch::Tensor buildEdges(
     at::Tensor& embedFeatures, int64_t numSpacepoints,
-    int dim, float rVal, int kVal
+    int dim, float rVal, int kVal, int32_t device_id
 )
 {
-    torch::Device device(torch::kCUDA);
-    auto options = torch::TensorOptions().dtype(torch::kFloat32).device(torch::kCUDA);
+    at::cuda::CUDAGuard device_guard(device_id);
+    torch::Device device(torch::kCUDA, device_id);
+    auto options = torch::TensorOptions().dtype(torch::kFloat32).device(torch::kCUDA, device_id);
 
     int grid_params_size;
     int grid_delta_idx;
@@ -105,7 +106,6 @@ torch::Tensor buildEdges(
     torch::Tensor positiveIndices = std::get<0>(nbr_output) >= 0;
 
     torch::Tensor repeatRange = torch::arange(positiveIndices.size(1), device).repeat({1, positiveIndices.size(2), 1}).transpose(1,2);
-    
     torch::Tensor stackedEdges = torch::stack({repeatRange.index({positiveIndices}), std::get<0>(nbr_output).index({positiveIndices})});
 
     //  Remove self-loops:

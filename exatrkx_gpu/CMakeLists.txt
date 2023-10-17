@@ -79,3 +79,8 @@ file(GLOB HeaderFiles *.hpp)
 install(FILES ${HeaderFiles}
   DESTINATION include/exatrkxgpu
 )
+
+install(
+  TARGETS inference-gpu
+  DESTINATION bin
+)

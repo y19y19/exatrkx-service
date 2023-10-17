@@ -63,3 +63,8 @@ file(GLOB HeaderFiles *.hpp)
 install(FILES ${HeaderFiles}
   DESTINATION include/exatrkxcpu
 )
+
+install(
+  TARGETS inference-cpu
+  DESTINATION bin
+)
