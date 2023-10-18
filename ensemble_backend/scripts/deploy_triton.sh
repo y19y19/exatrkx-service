@@ -35,6 +35,6 @@ srun -C gpu \
     --gpus-per-task=4 \
     --gpu-bind=closest \
     --ntasks-per-node=1 \
-    triton_service/start_tritonserver.sh
+    ./start_tritonserver.sh
 
 exit

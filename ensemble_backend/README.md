@@ -54,6 +54,7 @@ stateDiagram-v2
 > All scripts are in the folder [scripts](scripts)
 
 # Setup
+Change the `$EXATRKX_HOME` to the directory to yours.
 
 Execute this code during first time setup in order to setup the correct environment + compile ExaTrkx C++ pipeline code:
 ```bash
