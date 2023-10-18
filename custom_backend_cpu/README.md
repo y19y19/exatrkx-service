@@ -1,6 +1,9 @@
 # CPU-based Customized Backend
 
-Start the container *as a server*, see [Container](../README.md#container) for details.
+Start the container *as a server*:
+```bash
+podman-hpc run -it --rm --shm-size=2g -p8000:8000 -p8001:8001 -p8002:8002 -v ${PWD}:/workspace/ username/exatrkx:v1.0 bash
+```
 
 ## Build the backend
 The customized backend depends on the `ExaTrkXCPU` library, which can be compiled from the `exatrkx_cpu`.

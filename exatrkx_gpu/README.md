@@ -4,7 +4,10 @@ The torch models are executed through the `libtorch` library. The fixed
 radius clustering is implemented via the `frnn` library. 
 
 ## Build
-Start the container *as a client*, see [Container](../README.md#container) for details.
+Start the container *as a client*:
+```bash!
+podman-hpc run -it --rm --ipc=host --net=host --ulimit memlock=-1 --ulimit stack=67108864 -v ${PWD}:/workspace/ username/custom_backend:v1.0 bash
+```
 
 To compile the code, simply `cd exatrkx_gpu` and run `./make.sh`.
 
