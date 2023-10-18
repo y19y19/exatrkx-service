@@ -13,7 +13,7 @@ To compile the code, simply `cd exatrkx_cpu` and run `./make.sh`.
 
 ## Latency evaluation
 Run the direct inference and evaluate the latency:
-```bash
+```bash!
 ./build/bin/inference-cpu -m ../../exatrkx_pipeline/datanmodels -d ../../exatrkx_pipeline/datanmodels/in_e1000.csv -t 1
 ```
 See `./build/bin/inference-cpu -h` for help.

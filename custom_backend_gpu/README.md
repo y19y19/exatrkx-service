@@ -1,7 +1,7 @@
 # GPU-based customized backend
 
 Start the container *as a server*:
-```bash
+```bash!
 podman-hpc run -it --rm --shm-size=2g -p8000:8000 -p8001:8001 -p8002:8002 -v ${PWD}:/workspace/ username/exatrkx:v1.0 bash
 ```
 
@@ -12,7 +12,7 @@ Then compile the customized backend by running the `make.sh` inside `backend` fo
 
 ## Start the server
 
-```bash
+```bash!
 cp -r /workspace/custom_backend_gpu/backend/build/install/install/backends/exatrkxgpu/ /opt/tritonserver/backends && tritonserver --model-repository=/workspace/custom_backend_gpu/model_repo --log-verbose=4
 ```
 ## Start the client 
@@ -25,6 +25,6 @@ And compile the ExaTrkX client code in the `exatrkx_triton` folder:
 
 
 ## Check on 100 events
-``` bash
+``` bash!
 time ./build/bin/inference-aas -m exatrkxgpu -d /workspace/exatrkx_pipeline/datanmodels/lrt/inputs
 ```

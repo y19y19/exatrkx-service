@@ -12,7 +12,7 @@ podman-hpc run -it --rm --ipc=host --net=host --ulimit memlock=-1 --ulimit stack
 To compile the code, simply `cd exatrkx_gpu` and run `./make.sh`.
 
 ## Latency evaluation
-```bash
+```bash!
 ./build/bin/inference-gpu -m ../../exatrkx_pipeline/datanmodels -d ../../exatrkx_pipeline/datanmodels/in_e1000.csv
 ```
 See `./build/bin/inference-gpu -h` for help.
@@ -50,7 +50,7 @@ Summary of the last event
 
 ## Throughput evaluation
 
-```bash
+```bash!
 ./build/bin/inference-gpu-throughput -m ../../exatrkx_pipeline/datanmodels -d ../../exatrkx_pipeline/datanmodels/in_e1000.csv -t 1 
 ```
 See `./build/bin/inference-gpu-throughput -h` for help.
