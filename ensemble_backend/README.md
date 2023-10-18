@@ -1,7 +1,6 @@
 # Triton Service
 
-This folder contains instructions on how to operate the Triton service. Within this folder are instruction on creating [python_backends](python_backends/README.md#python-backends), the [model repositories](model_repos/README.md) configration and files relating to the prometheus, grafana and nginx services. 
-
+This folder contains instructions on how to operate the ensemble-backend Triton service. Within this folder are instruction on creating [python_backends](python_backends/README.md#python-backends), the [model repositories](model_repos/README.md) configration and files relating to the prometheus, grafana and nginx services, and bash scripts [scripts](scripts) that launch, monitor, and evaluate the server.
 
 
 **Figure 1**: ExaTrkX Triton server pipeline
@@ -50,6 +49,9 @@ stateDiagram-v2
 `gnn`| PyTorch
 `wcc`| Python
 
+
+> *Note*
+> All scripts are in the folder [scripts](scripts)
 
 # Setup
 

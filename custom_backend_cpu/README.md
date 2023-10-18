@@ -3,6 +3,7 @@
 ## How to Run
 
 ### Build a container
+As an example in Perlmutter, we use `podman-hpc` to build and run the container.
 
 First build the container in a login node. We use `user-name` as an example.
 ```bash
