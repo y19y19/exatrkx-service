@@ -1,15 +1,18 @@
 # ExaTrkX in GPUs
 This is the preliminary implementation of the ExaTrkX algorithm in GPUs.
 The torch models are executed through the `libtorch` library. The fixed
-radius clustering is implemented via the `frnn` library. All the dependencies
-are installed in a docker image, `docexoty/acts-triton`. You can find the dockerfile
-[here](https://github.com/xju2/dockers/blob/main/ML/acts-triton/Dockerfile).
+radius clustering is implemented via the `frnn` library. 
 
-To compile the code `./make.sh` and run the code
+## Build
+Start the container as a client, see [Container](../README.md#container) for details.
+
+To compile the code, simply `cd exatrkx_gpu` and run `./make.sh`.
+
+## Latency evaluation
 ```bash
-cd build
-./bin/inference-gpu -m ../../exatrkx_pipeline/datanmodels -d ../../exatrkx_pipeline/datanmodels/in_e1000.csv
+./build/bin/inference-gpu -m ../../exatrkx_pipeline/datanmodels -d ../../exatrkx_pipeline/datanmodels/in_e1000.csv
 ```
+See `./build/bin/inference-gpu -h` for help.
 
 Results
 ```text
@@ -41,3 +44,10 @@ Summary of the last event
 5) labeling:   0.0016
 6) total:      0.0659
 ```
+
+## Throughput evaluation
+
+```bash
+./build/bin/inference-gpu-throughput -m ../../exatrkx_pipeline/datanmodels -d ../../exatrkx_pipeline/datanmodels/in_e1000.csv -t 1 
+```
+See `./build/bin/inference-gpu-throughput -h` for help.
