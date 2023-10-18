@@ -1,27 +1,24 @@
 # Evluate the Time performance 
 
-A docker image is provided for the evaluation where the triton backend is compiled and installed, as well as the cpp version triton client `inference-aas`. 
-```bash
-podman-hpc pull hrzhao076/exatrkx_triton_backend:4.0 
-```
-
-The Dockerfile is in the top directory because the source codes are needed. 
-
-```bash
-cd <exatrkx>
-podman-hpc build -t $(whoami)/exatrkx_triton_backend:4.0 -f Dockerfile 
-```
+A docker image is provided for the evaluation where the triton backend is compiled and installed, 
+as well as the cpp version triton client `inference-aas`: `hrzhao076/exatrkx_triton_backend:4.0`.
 
 
+## Start the server
 ```bash 
-podman-hpc run -it --rm --gpu --shm-size=20g -p8000:8000 -p8001:8001 -p8002:8002 -v ${PWD}:/workspace hrzhao076/exatrkx_triton_backend:4.0 
-
+podman-hpc run -it --rm --gpu --shm-size=20g -p8000:8000 -p8001:8001 -p8002:8002 -v ${PWD}:/workspace hrzhao076/exatrkx_triton_backend:4.0
 tritonserver --model-repository=/opt/model_repos
 ```
 
+## Start the client
+
 ```bash 
 podman-hpc run -it --rm --gpu --ipc=host --net=host --ulimit memlock=-1 --ulimit stack=67108864 -v ${PWD}:/workspace/ hrzhao076/exatrkx_triton_backend:4.0
+```
 
+## Perform the evaluation 
+
+```bash
 # measuring the time to process 100 events 
 cd /workspace/evaluate/
 python evaluate_time.py
@@ -47,13 +44,6 @@ sbatch slurm/slurm_1gpu.sub
 # evaluate/plotting/plot_1GPU.ipynb
 ```
 ## CTD results 
-[throughput_vs_concurency](plotting/throughput_vs_concurrency_1inst_1gpu.pdf)
+![throughput_vs_concurency](plotting/throughput_vs_concurrency_1inst_1gpu.png)
 
-[avg_thgoughput_vs_instance](plotting/avg_throughput_vs_instances_1gpu.pdf)
-
-
-## Example results 
-The following results are obtained on a nersc compute node with 1 GPU. The time measurement is by using the shell command `time` and the `real time` is used to compare.    
-![GPU direct inference](results_inference_gpu_direct.png)
-![GPU triton inference](results_inference_gpu_triton.png)
-![GPU direct vs. triton](gpu_comparison.png)
+![avg_thgoughput_vs_instance](plotting/avg_throughput_vs_instances_1gpu.png)
