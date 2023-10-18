@@ -22,3 +22,31 @@ and GPU-based customized backend in [custom_backend_gpu](custom_backend_gpu).
 ## Evaluation
 
 We use the tool `perf_analyzer` [link to Triton doc](https://github.com/triton-inference-server/client/blob/main/src/c++/perf_analyzer/README.md) from Triton to evaluate the performance. Details can be found in [evaluation](evaluation).
+
+## Code Structure
+
+The code structure is as follows:
+
+Direct inferences:
+```bash
+├── exatrkx_cpu
+├── exatrkx_gpu
+├── exatrkx_pipeline
+```
+
+Triton Server:
+```bash
+├── custom_backend_cpu
+├── custom_backend_gpu
+├── ensemble_backend
+```
+
+ExaTrkX Client
+```bash
+├── exatrkx_triton
+```
+
+Evaluation
+```bash
+├── evaluation
+```
