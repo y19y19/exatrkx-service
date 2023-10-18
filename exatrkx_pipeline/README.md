@@ -1,6 +1,5 @@
 # Introduction
-The ExaTrkX pipeline used for the C++ inference.
-
+The legacy ExaTrkX pipeline used for the C++ inference.
 
 # To compile the C++ pipeline
 

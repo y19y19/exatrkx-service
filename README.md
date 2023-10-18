@@ -2,90 +2,19 @@
 
 This repository houses the "as-a-service" implementation of the [ExaTrkX](https://arxiv.org/abs/2103.06995) pipeline. We use Nvidia's [Triton inference server](https://github.com/triton-inference-server) to host the ExaTrkX pipeline and schedule requests from clients.
 
-**Figure 1**: ExaTrkX Triton server pipeline
+The ExaTrkX pipeline contains 6 stages: Embedding (`embed`), Fixed-radius nearest neighbour (`frnn`), Filtering (`filter`), 
+Edge Classification (`gnn`), and Weakly-connected components (`wcc`). 
 
-```mermaid
----
-title: ExaTrkX ensemble model
----
-stateDiagram-v2
-    direction LR
-    
-    classDef pytorch_style fill:#f00,color:white,font-weight:bold,stroke-width:2px,stroke:black
-    classDef python_backend_style fill:#46eb34,color:white,font-weight:bold,stroke-width:2px,stroke:yellow
-    
+## Direct Inference
+Direct inference means that the algorithm directly runs on CPUs or GPUs without the need for a server. 
+However, note that the same code can be wrapped in a server and run on a server.
 
-    [*] --> embed:::pytorch_style : SP
-    embed --> frnn:::python_backend_style : new SP
-    [*] --> filter : SP
-    frnn --> filter:::pytorch_style : Edges
-    filter --> applyfilter:::python_backend_style : Edge Scores
-    frnn --> applyfilter : Edges
-    applyfilter --> gnn : Edges
-    [*] --> gnn:::pytorch_style : SP
-    applyfilter --> wcc:::python_backend_style : Edges
-    gnn --> wcc : Edge Scores
-    wcc --> [*] : Tracks
-
-    state backend_legend {
-        direction LR
-            pytorch
-            python_backend
-        }
-    
-
-    class pytorch pytorch_style
-    class python_backend python_backend_style
-```
-
-**Table 1**: ExaTrkX Triton server pipeline
-**Stage**|**Backend**
-:-----|:-----
-`embed`| PyTorch
-`frnn`| Python
-`filter`| PyTorch
-`applyfilter`| Python
-`gnn`| PyTorch
-`wcc`| Python
-
-
-# Setup
-
-Execute this code during first time setup in order to setup the correct environment + compile ExaTrkx C++ pipeline code:
-```bash
-source setup.sh
-```
-
-Copy the Python Backend tar files into `$SCRATCH/exatrxk/python_backends/`. If you don't have a copy of them you can make them following the instruction in [triton_service/python_backends](triton_service/python_backends/README.md#python-backends).
-
-# Usage 
+There are three C++ implementations of the ExaTrkX pipeline: the legacy pipeline that runs on either CPUs or GPUs in [exatrkx_pipeline](exatrkx_pipeline),
+the CPU-only pipelin [exatrkx_cpu](exatrkx_cpu), and the GPU-only pipeline [exatrkx_gpu](exatrkx_gpu).
 
 ## Triton Server
-Launch the inference server interactively via:
-```bash
-./deploy_triton.sh
-```
 
-Or operate in batch mode via sbatch:
-```bash
-sbatch --account=<elvis> deploy_triton.sh
-```
+There are three ExaTrkX-as-a-Service implementations: Ensemble backend in [ensemble_backend](ensemble_backend),
+CPU-based customized backend in [custom_backend_cpu](custom_backend_cpu),
+and GPU-based customized backend in [custom_backend_gpu](custom_backend_gpu).
 
-## Inference Binary
-Run the inference binary in parallel with:
-```bash
-./run_exatrkx.sh server_ip_address:8001 [optional: -d data_folder -n njobs -j cpu_threads_per_job -q/--quiet]
-```
-
-## Grafana Dashboard + Nginx Load Balancer
-To run the Grafana Dashboard and connect the triton servers to a load balancer run:
-```bash
-./monitor_triton.sh slurm_jobid
-```
-
-To save key metrics run (see [file](triton_service/triton_metrics.py)):
-```bash
-python triton_service/triton_metrics.py --ip server_ip_address:8002
-```
-
-# Notes
