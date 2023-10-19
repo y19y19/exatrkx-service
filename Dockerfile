@@ -1,3 +1,6 @@
+# This container is for ExaTrkX as a service. 
+# It works for both the client and the server.
+
 FROM nvcr.io/nvidia/tritonserver:22.02-py3
 # nvcc version: 11.6 ## nvcc --version
 # cudnn version: 8.3.2  ## find / -name "libcudnn*" 2>/dev/null

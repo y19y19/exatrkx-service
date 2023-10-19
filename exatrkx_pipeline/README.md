@@ -1,25 +1,17 @@
 # Introduction
-The ExaTrkX pipeline used for the C++ inference.
-
+The legacy ExaTrkX pipeline used for the C++ inference.
 
 # To compile the C++ pipeline
 
-First launch an interactive docker container
-
-```bash
-docker run -it --rm --gpus all --net=host \
-  --ulimit memlock=-1 --ulimit stack=67108864 \
-  -v $PWD:$PWD -w $PWD docexoty/exatrkx:triton-rapids bash
+Start the container *as a client*:
+```bash!
+podman-hpc run -it --rm --ipc=host --net=host --ulimit memlock=-1 --ulimit stack=67108864 -v ${PWD}:/workspace/ username/custom_backend:v1.0 bash
 ```
 
 then 
 ```bash
-mkdir build && cd build
-```
-
-then 
-```bash
-../make.sh
+cd exatrkx_pipeline
+./make.sh
 ```
 
 You will see many errors and warnings concerning `torch` such as follows, but you can safely ignore
