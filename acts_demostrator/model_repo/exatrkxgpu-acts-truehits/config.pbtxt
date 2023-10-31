@@ -1,3 +1,4 @@
+name: "exatrkxgpu-acts-truehits"
 backend: "exatrkxgpu"
 max_batch_size: 0
 input [

@@ -25,7 +25,7 @@
 
 // TODO: figure out a suitable dimension of grid?
 constexpr int MIN_D = 2;
-constexpr int MAX_D = 8;
+constexpr int MAX_D = 12;
 
 // TODO: Optimize for large K
 constexpr int MIN_K = 1;

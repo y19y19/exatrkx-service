@@ -9,12 +9,6 @@
 
 #include "tbb/parallel_for_each.h"
 #include "tbb/task_scheduler_init.h"
-#include "torchscatter/scatter.h"
-#include "torchscatter/cuda/scatter_cuda.h"
-#include "torchscatter/cpu/scatter_cpu.h"
-
-#include <torch/script.h>
-#include <torch/torch.h>
 
 #include <memory>
 #include <string>
@@ -72,8 +66,9 @@ int main(int argc, char* argv[])
     int nthreads = 1;
     std::string model_path("datanmodels");
     int32_t device_id = 0;
+    std::string model_type("default");
 
-    while ((opt = getopt(argc, argv, "vht:d:m:i:")) != -1) {
+    while ((opt = getopt(argc, argv, "vht:d:m:i:e:")) != -1) {
         switch (opt) {
             case 'd':
                 input_file_path = optarg;
@@ -90,8 +85,12 @@ int main(int argc, char* argv[])
             case 'i':
                 device_id = atoi(optarg);
                 break;
+            case 'e':
+                model_type = optarg;
+                break;
             case 'h':
                 help = true;
+                break;
             default:
                 fprintf(stderr, "Usage: %s [-hv] [-d input_file_path] [-t number_of_threads] \n", argv[0]);
                 if (help) {
@@ -100,9 +99,16 @@ int main(int argc, char* argv[])
                     std::cerr << " -v: verbose" << std::endl;
                     std::cerr << " -m: model path" << std::endl;
                     std::cerr << " -i: device id" << std::endl;
+                    std::cerr << " -e: model type, can be [default, acts-truth, or acts-smear]" << std::endl;
                 }
             exit(EXIT_FAILURE);
         }
+    }
+
+    // check if the model type is valid
+    if (model_type != "default" && model_type != "acts-truth" && model_type != "acts-smear") {
+        std::cerr << "Error: model type can only be [default, acts-truth, or acts-smear]" << std::endl;
+        exit(EXIT_FAILURE);
     }
 
     // start tbb scheduler
@@ -113,6 +119,9 @@ int main(int argc, char* argv[])
 
     std::unique_ptr<ExaTrkXTrackFinding> infer;
     ExaTrkXTrackFinding::Config config{model_path, verbose, device_id};
+    if(model_type == "acts-smear"){
+        config.embeddingDim = 12; // 12 for acts-smear 
+    }
     infer = std::make_unique<ExaTrkXTrackFinding>(config);
 
     std::cout << "Running Inference with local GPUs" << std::endl;

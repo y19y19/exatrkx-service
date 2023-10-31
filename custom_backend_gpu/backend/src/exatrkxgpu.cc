@@ -182,6 +182,7 @@ class ModelState : public BackendModel {
    std::string model_path;
    int64_t spacepointFeatures;
    bool model_verbose;
+   std::string model_type="default";
 
  private:
   ModelState(TRITONBACKEND_Model* triton_model);
@@ -201,7 +202,7 @@ class ModelState : public BackendModel {
 
 ModelState::ModelState(TRITONBACKEND_Model *triton_model)
     : BackendModel(triton_model),
-      model_path("/workspace/exatrkx_pipeline/datanmodels/"), spacepointFeatures(3), model_verbose(false)
+      model_path("/workspace/exatrkx_pipeline/datanmodels/"), spacepointFeatures(3), model_verbose(false), model_type("default")
 {
   // Validate that the model's configuration matches what is supported
   // by this backend.
@@ -212,6 +213,7 @@ ModelState::ModelState(TRITONBACKEND_Model *triton_model)
   THROW_IF_BACKEND_MODEL_ERROR(
       TRITONBACKEND_ModelRepository(triton_model, &artifact_type, &path));
   std::string execution_model_path = "";
+  std::string execution_model_type = "";
 
   TRITONBACKEND_Backend* backend;
   THROW_IF_BACKEND_MODEL_ERROR(
@@ -243,6 +245,22 @@ ModelState::ModelState(TRITONBACKEND_Model *triton_model)
       TRITONSERVER_ErrorDelete(error);
     }
   }
+  
+  // change the model_type to acts-smear if the model is smeared_hits 
+  if (model_path.back() == '/') {
+        model_path.pop_back();
+  }
+
+  size_t last_slash = model_path.find_last_of('/');
+  std::string last_folder = model_path.substr(last_slash + 1);
+  if (last_folder == "smeared_hits") {
+    model_type = "acts-smear";
+    LOG_MESSAGE(
+          TRITONSERVER_LOG_INFO,
+          (std::string("Change the model_type to: ") + model_type + std::string(" for smeared_hits model(embeddingDim = 12)"))
+              .c_str());
+  }
+
 }
 
 TRITONSERVER_Error*
@@ -465,9 +483,12 @@ TRITONBACKEND_ModelInstanceInitialize(TRITONBACKEND_ModelInstance* instance)
   RETURN_IF_ERROR(TRITONBACKEND_ModelInstanceDeviceId(instance, &device_id));
   TRITONSERVER_InstanceGroupKind kind;
   RETURN_IF_ERROR(TRITONBACKEND_ModelInstanceKind(instance, &kind));
-
+  
   instance_state->config = ExaTrkXTrackFinding::Config{model_state->model_path, model_state->model_verbose, device_id=device_id};
   // ExaTrkXTimeList tot_time;
+  if(model_state->model_type == "acts-smear"){
+    instance_state->config.embeddingDim = 12;
+  }
   instance_state->infer = std::make_unique<ExaTrkXTrackFinding>(instance_state->config);
 
   return nullptr; // success
