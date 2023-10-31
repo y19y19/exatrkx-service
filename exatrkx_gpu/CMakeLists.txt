@@ -36,6 +36,7 @@ set(CMAKE_C_FLAGS "-Wno-error=format-truncation")
 find_package(Torch REQUIRED)
 find_package(Boost REQUIRED)
 find_package(TBB REQUIRED)
+find_package(TorchScatter REQUIRED)
 
 add_subdirectory(libFRNN)
 
@@ -49,8 +50,10 @@ target_link_libraries(
   PUBLIC
     ${TORCH_LIBRARIES}
     ${Python3_LIBRARIES}
+    TorchScatter::TorchScatter
     python3.8
 )
+
 target_link_libraries(
     ExaTrkXGPU
   PRIVATE
@@ -59,6 +62,12 @@ target_link_libraries(
 set_target_properties(ExaTrkXGPU
 PROPERTIES  CXX_STANDARD                        17
             CXX_STANDARD_REQUIRED               ON
+)
+
+target_link_options(
+  ExaTrkXGPU
+  PUBLIC
+    "-Wl,-no-as-needed"
 )
 
 add_executable(inference-gpu inference-gpu.cpp)
@@ -81,9 +90,14 @@ install(FILES ${HeaderFiles}
 )
 
 add_executable(inference-gpu-throughput inference-gpu-throughput.cpp)
-target_link_libraries(inference-gpu-throughput PUBLIC tbb ExaTrkXGPU)
+target_link_libraries(inference-gpu-throughput PUBLIC tbb ExaTrkXGPU TorchScatter::TorchScatter)
 target_compile_definitions(inference-gpu-throughput PUBLIC CUDA_API_PER_THREAD_DEFAULT_STREAM)
 set_target_properties(inference-gpu-throughput
 PROPERTIES  CXX_STANDARD                        17
             CXX_STANDARD_REQUIRED               ON
+)
+
+install(
+  TARGETS inference-gpu inference-gpu-throughput
+  DESTINATION bin
 )

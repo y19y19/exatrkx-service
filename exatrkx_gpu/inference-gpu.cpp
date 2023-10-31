@@ -9,6 +9,12 @@
 
 #include "tbb/parallel_for_each.h"
 #include "tbb/task_scheduler_init.h"
+#include "torchscatter/scatter.h"
+#include "torchscatter/cuda/scatter_cuda.h"
+#include "torchscatter/cpu/scatter_cpu.h"
+
+#include <torch/script.h>
+#include <torch/torch.h>
 
 #include <memory>
 #include <string>
